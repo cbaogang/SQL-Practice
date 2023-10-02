@@ -2,6 +2,8 @@
 
 # 高频 SQL 50 题（基础版）
 
+## Day 1:
+
 ### 一. [584. 寻找用户推荐人](https://leetcode.cn/problems/find-customer-referee/)
 
 ------
@@ -62,14 +64,24 @@ MySQL 使用三值逻辑 —— TRUE, FALSE 和 UNKNOWN。任何与 NULL 值进�
 解法 1：
 
 ```sql
-SELECT name FROM Customer C WHERE C.referee_id <> 2 OR C.referee_id IS NULL;
+SELECT name 
+FROM Customer C 
+WHERE C.referee_id <> 2 
+OR C.referee_id 
+IS NULL;
 
 ```
 
 解法 2：
 
 ```sql
-SELECT c.name FROM Customer c WHERE c.id NOT IN (SELECT c1.id FROM Customer c1 WHERE c1.referee_id=2);
+SELECT c.name 
+FROM Customer c 
+WHERE c.id 
+NOT IN 
+(SELECT c1.id 
+ FROM Customer c1 
+ WHERE c1.referee_id=2);
 
 ```
 
@@ -80,7 +92,14 @@ SELECT c.name FROM Customer c WHERE c.id NOT IN (SELECT c1.id FROM Customer c1 W
 解法 3：
 
 ```sql
-SELECT c.name FROM Customer c WHERE NOT EXISTS (SELECT c1.id FROM Customer c1 WHERE c1.referee_id=2 and c.id=c1.id);
+SELECT c.name 
+FROM Customer c 
+WHERE 
+NOT EXISTS 
+(SELECT c1.id 
+ FROM Customer c1 
+ WHERE c1.referee_id=2 
+ and c.id=c1.id);
 
 ```
 
@@ -209,6 +228,29 @@ def article_views(views: pd.DataFrame) -> pd.DataFrame:
 
 
 
+```sql
+SELECT DISTINCT v.author_id as id FROM Views v WHERE EXISTS 
+      (SELECT v2.viewer_id FROM Views v2 
+      WHERE v2.viewer_id=v.author_id) ORDER BY id ASC;
+```
+
+
+
+
+
+```sql
+SELECT 
+    DISTINCT author_id AS id 
+FROM 
+    Views 
+WHERE 
+    author_id = viewer_id 
+ORDER BY 
+    id 
+```
+
+
+
 -----------------------------------------------------
 
 
@@ -288,4 +330,442 @@ def invalid_tweets(tweets: pd.DataFrame) -> pd.DataFrame:
 
 1. `str.len()` 方法: 计算字符串长度
 
-   
+
+
+## Day 2 
+
+### [1378. 使用唯一标识码替换员工ID](https://leetcode.cn/problems/replace-employee-id-with-the-unique-identifier/)
+
+
+
+展示每位用户的 **唯一标识码（unique ID ）**；如果某位员工没有唯一标识码，使用 null 填充即可。
+
+你可以以 **任意** 顺序返回结果表。
+
+返回结果的格式如下例所示。
+
+ 
+
+#### **示例 1：**
+
+```sql
+输入：
+Employees 表:
++----+----------+
+| id | name     |
++----+----------+
+| 1  | Alice    |
+| 7  | Bob      |
+| 11 | Meir     |
+| 90 | Winston  |
+| 3  | Jonathan |
++----+----------+
+EmployeeUNI 表:
++----+-----------+
+| id | unique_id |
++----+-----------+
+| 3  | 1         |
+| 11 | 2         |
+| 90 | 3         |
++----+-----------+
+输出：
++-----------+----------+
+| unique_id | name     |
++-----------+----------+
+| null      | Alice    |
+| null      | Bob      |
+| 2         | Meir     |
+| 3         | Winston  |
+| 1         | Jonathan |
++-----------+----------+
+解释：
+Alice and Bob 没有唯一标识码, 因此我们使用 null 替代。
+Meir 的唯一标识码是 2 。
+Winston 的唯一标识码是 3 。
+Jonathan 唯一标识码是 1 。
+```
+
+
+
+1. **LEFT JOIN**操作，将两个表的数据基于 id 列进行组合.使用 LEFT JOIN 来确保将所有 Employees 表中的行都包含在结果中，即使在 EmployeeUNI 表中没有匹配的行。
+2. 使用**ON** 链接而不是WHERE
+
+
+
+#### **2.SQL解答：**
+
+```sql
+SELECT 
+	en.unique_id,e.name 
+FROM 
+	Employees e 
+LEFT JOIN 
+	EmployeeUNI en
+ON 
+	e.id=en.id ;
+```
+
+
+
+#### **3.Pandas解答：**
+
+```Python
+import pandas as pd
+
+def replace_employee_id(employees:pd.DataFrame,employee_uni:pd.DataFrame)->pd.DataFrame:
+    employee_name_uni=pd.merge(employees,emploee_uni,on='id',how='left')
+	answer=employee_name_uni[['unique_id','name']]
+
+```
+
+
+
+### [1068. 产品销售分析 I](https://leetcode.cn/problems/product-sales-analysis-i/)
+
+编写解决方案，以获取 `Sales` 表中所有 `sale_id` 对应的 `product_name` 以及该产品的所有 `year` 和 `price` 。
+
+返回结果表 **无顺序要求** 。
+
+结果格式示例如下。
+
+ 
+
+#### 1.**示例 ：**
+
+```sql
+输入：
+Sales 表：
++---------+------------+------+----------+-------+
+| sale_id | product_id | year | quantity | price |
++---------+------------+------+----------+-------+ 
+| 1       | 100        | 2008 | 10       | 5000  |
+| 2       | 100        | 2009 | 12       | 5000  |
+| 7       | 200        | 2011 | 15       | 9000  |
++---------+------------+------+----------+-------+
+Product 表：
++------------+--------------+
+| product_id | product_name |
++------------+--------------+
+| 100        | Nokia        |
+| 200        | Apple        |
+| 300        | Samsung      |
++------------+--------------+
+输出：
++--------------+-------+-------+
+| product_name | year  | price |
++--------------+-------+-------+
+| Nokia        | 2008  | 5000  |
+| Nokia        | 2009  | 5000  |
+| Apple        | 2011  | 9000  |
++--------------+-------+-------+
+```
+
+
+
+- 题目【以获取 Sales 表中所有 sale_id 对应的 product_name 】，左连接以Sales表为准
+
+
+
+#### **2.SQL解答：**
+
+```sql
+SELECT 
+  product_name, year,price 
+FROM 
+  Sales
+LEFT JOIN 
+  Product
+ON Sales.product_id=Product.product_id;
+```
+
+#### **3.Pandas解答：**
+
+```python
+def sales_analysis(Sales:pd.DataFrame,Product:pd.DataFrame)->pd.DataFrame:
+  merged_table=pd.merge(Sales,Product,on='product_id',how='left')
+  return merged_table[['product_name','year','price']]
+```
+
+
+
+### [1581. 进店却未进行过交易的顾客](https://leetcode.cn/problems/customer-who-visited-but-did-not-make-any-transactions/)
+
+
+
+有一些顾客可能光顾了购物中心但没有进行交易。请你编写一个解决方案，来查找这些顾客的 ID ，以及他们只光顾不交易的次数。
+
+返回以 **任何顺序** 排序的结果表。
+
+返回结果格式如下例所示。
+
+ 
+
+#### 1.**示例：**
+
+```sql
+输入:
+Visits
++----------+-------------+
+| visit_id | customer_id |
++----------+-------------+
+| 1        | 23          |
+| 2        | 9           |
+| 4        | 30          |
+| 5        | 54          |
+| 6        | 96          |
+| 7        | 54          |
+| 8        | 54          |
++----------+-------------+
+Transactions
++----------------+----------+--------+
+| transaction_id | visit_id | amount |
++----------------+----------+--------+
+| 2              | 5        | 310    |
+| 3              | 5        | 300    |
+| 9              | 5        | 200    |
+| 12             | 1        | 910    |
+| 13             | 2        | 970    |
++----------------+----------+--------+
+输出:
++-------------+----------------+
+| customer_id | count_no_trans |
++-------------+----------------+
+| 54          | 2              |
+| 30          | 1              |
+| 96          | 1              |
++-------------+----------------+
+解释:
+ID = 23 的顾客曾经逛过一次购物中心，并在 ID = 12 的访问期间进行了一笔交易。
+ID = 9 的顾客曾经逛过一次购物中心，并在 ID = 13 的访问期间进行了一笔交易。
+ID = 30 的顾客曾经去过购物中心，并且没有进行任何交易。
+ID = 54 的顾客三度造访了购物中心。在 2 次访问中，他们没有进行任何交易，在 1 次访问中，他们进行了 3 次交易。
+ID = 96 的顾客曾经去过购物中心，并且没有进行任何交易。
+如我们所见，ID 为 30 和 96 的顾客一次没有进行任何交易就去了购物中心。顾客 54 也两次访问了购物中心并且没有进行任何交易。
+```
+
+
+
+#### **2.SQL解答：**
+
+
+
+方法一：
+
+```sql
+SELECT 
+	v.customer_id, COUNT(v.visit_id) AS count_no_trans
+FROM 
+	Visits v
+WHERE 
+	v.visit_id 
+NOT IN 
+	(SELECT 
+     	t.visit_id 
+     FROM Transactions t) 
+GROUP BY 
+	v.customer_id
+ORDER BY 
+	count_no_trans 
+DESC;
+```
+
+
+
+方法二：
+
+![12.png](media\1601110868-kXhJMt-12.png)
+
+
+
+```sql
+select 
+	V.customer_id, count(distinct V.visit_id) as count_no_trans 
+from 
+	Visits V 
+left join 
+	Transactions T
+on 
+	V.visit_id = T.visit_id 
+where 
+	T.transaction_id is null
+group by
+	(V.customer_id)
+order by 
+	count_no_trans desc
+```
+
+
+
+### [197. 上升的温度](https://leetcode.cn/problems/rising-temperature/)
+
+编写解决方案，找出与之前（昨天的）日期相比温度更高的所有日期的 `id` 。
+
+返回结果 **无顺序要求** 。
+
+结果格式如下例子所示。
+
+ 
+
+#### **1.示例：**
+
+```sql
+输入：
+Weather 表：
++----+------------+-------------+
+| id | recordDate | Temperature |
++----+------------+-------------+
+| 1  | 2015-01-01 | 10          |
+| 2  | 2015-01-02 | 25          |
+| 3  | 2015-01-03 | 20          |
+| 4  | 2015-01-04 | 30          |
++----+------------+-------------+
+输出：
++----+
+| id |
++----+
+| 2  |
+| 4  |
++----+
+解释：
+2015-01-02 的温度比前一天高（10 -> 25）
+2015-01-04 的温度比前一天高（20 -> 30）
+```
+
+- 难度：如何找到前一天日期，如何比较日期数据
+  - cross join
+  - datediff
+
+https://www.zhihu.com/tardis/zm/art/95768329?source_id=1003
+
+
+
+![img](https://pic2.zhimg.com/v2-8100e30a39da4cbb2ad22db5f7e096b9_b.webp?consumer=ZHI_MENG)
+
+
+
+#### 2.SQL 解法一：
+
+```sql
+SELECT 
+	a.id 
+FROM 
+	Weather a 
+CROSS JOIN 
+	Weather b 
+ON 
+	DATEDIFF(a.recordDate,b.recordDate)=1
+WHERE 
+	a.Temperature>b.Temperature;
+```
+
+
+
+#### 3. SQL 解法二：
+
+```sql
+select 
+	w2.id
+from 
+	Weather w1, Weather w2
+where 
+	datediff(w2.recordDate, w1.recordDate) = 1 
+and 
+	w2.Temperature > w1.Temperature
+```
+
+
+
+### [1661. 每台机器的进程平均运行时间](https://leetcode.cn/problems/average-time-of-process-per-machine/)
+
+现在有一个工厂网站由几台机器运行，每台机器上运行着 **相同数量的进程** 。编写解决方案，计算每台机器各自完成一个进程任务的平均耗时。
+
+完成一个进程任务的时间指进程的`'end' 时间戳` 减去 `'start' 时间戳`。平均耗时通过计算每台机器上所有进程任务的总耗费时间除以机器上的总进程数量获得。
+
+结果表必须包含`machine_id（机器ID）` 和对应的 **average time（平均耗时）** 别名 `processing_time`，且**四舍五入保留3位小数。**
+
+以 **任意顺序** 返回表。
+
+具体参考例子如下。
+
+ 
+
+#### 1.**示例 :**
+
+```sql
+输入：
+Activity table:
++------------+------------+---------------+-----------+
+| machine_id | process_id | activity_type | timestamp |
++------------+------------+---------------+-----------+
+| 0          | 0          | start         | 0.712     |
+| 0          | 0          | end           | 1.520     |
+| 0          | 1          | start         | 3.140     |
+| 0          | 1          | end           | 4.120     |
+| 1          | 0          | start         | 0.550     |
+| 1          | 0          | end           | 1.550     |
+| 1          | 1          | start         | 0.430     |
+| 1          | 1          | end           | 1.420     |
+| 2          | 0          | start         | 4.100     |
+| 2          | 0          | end           | 4.512     |
+| 2          | 1          | start         | 2.500     |
+| 2          | 1          | end           | 5.000     |
++------------+------------+---------------+-----------+
+输出：
++------------+-----------------+
+| machine_id | processing_time |
++------------+-----------------+
+| 0          | 0.894           |
+| 1          | 0.995           |
+| 2          | 1.456           |
++------------+-----------------+
+解释：
+一共有3台机器,每台机器运行着两个进程.
+机器 0 的平均耗时: ((1.520 - 0.712) + (4.120 - 3.140)) / 2 = 0.894
+机器 1 的平均耗时: ((1.550 - 0.550) + (1.420 - 0.430)) / 2 = 0.995
+机器 2 的平均耗时: ((4.512 - 4.100) + (5.000 - 2.500)) / 2 = 1.456
+```
+
+难点：
+
+- AVG 的使用
+- ROUND() 以及小数点的使用
+- 一个表实现
+
+#### 2. SQL 两个表链接：
+
+```sql
+
+SELECT 
+	a.machine_id,ROUND(AVG(b.timestamp-a.timestamp),3) AS processing_time
+FROM 
+	Activity a
+INNER JOIN 
+	Activity b 
+ON 
+	a.machine_id=b.machine_id 
+AND 
+	a.process_id=b.process_id 
+AND 
+	a.activity_type='start' 
+AND 
+	b.activity_type='end' 
+GROUP BY a.machine_id;
+```
+
+#### 3. SQL 一个表实现：
+
+如果start减时间，否则加时间，算一次时间差共进行两次，在计算avg时分母是原来两倍，因此分子要乘2
+
+```sql
+
+SELECT machine_id AS 'machine_id',
+    ROUND(
+        SUM(IF(activity_type = 'start', -timestamp, timestamp))
+        / COUNT(*) 
+        * 2
+        ,3) AS 'processing_time'
+FROM Activity
+GROUP BY machine_id;
+
+```
+
