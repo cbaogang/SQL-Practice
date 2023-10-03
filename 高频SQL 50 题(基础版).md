@@ -1,10 +1,8 @@
-
-
 # 高频 SQL 50 题（基础版）
 
 ## Day 1:
 
-### 一. [584. 寻找用户推荐人](https://leetcode.cn/problems/find-customer-referee/)
+### [584. 寻找用户推荐人](https://leetcode.cn/problems/find-customer-referee/)
 
 ------
 
@@ -767,5 +765,399 @@ SELECT machine_id AS 'machine_id',
 FROM Activity
 GROUP BY machine_id;
 
+```
+
+
+
+## Day 3
+
+### [577. 员工奖金](https://leetcode.cn/problems/employee-bonus/)
+
+编写解决方案，报告每个奖金 **少于** `1000` 的员工的姓名和奖金数额。
+
+以 **任意顺序** 返回结果表。
+
+结果格式如下所示。
+
+ 
+
+#### **1.示例：**
+
+```sql
+输入：
+Employee table:
++-------+--------+------------+--------+
+| empId | name   | supervisor | salary |
++-------+--------+------------+--------+
+| 3     | Brad   | null       | 4000   |
+| 1     | John   | 3          | 1000   |
+| 2     | Dan    | 3          | 2000   |
+| 4     | Thomas | 3          | 4000   |
++-------+--------+------------+--------+
+Bonus table:
++-------+-------+
+| empId | bonus |
++-------+-------+
+| 2     | 500   |
+| 4     | 2000  |
++-------+-------+
+输出：
++------+-------+
+| name | bonus |
++------+-------+
+| Brad | null  |
+| John | null  |
+| Dan  | 500   |
++------+-------+
+```
+
+
+
+#### 2.SQL 解法：
+
+```sql
+SELECT 
+  e.name, 
+  b.bonus 
+FROM 
+  Employee e 
+  LEFT JOIN Bonus b ON e.empId = b.empId 
+WHERE 
+  b.bonus < 1000 
+  OR b.bonus IS NULL;
+```
+
+
+
+### [1280. 学生们参加各科测试的次数](https://leetcode.cn/problems/students-and-examinations/)
+
+
+
+查询出每个学生参加每一门科目测试的次数，结果按 `student_id` 和 `subject_name` 排序。
+
+查询结构格式如下所示。
+
+ 
+
+#### **1.示例:**
+
+```sql
+输入：
+Students table:
++------------+--------------+
+| student_id | student_name |
++------------+--------------+
+| 1          | Alice        |
+| 2          | Bob          |
+| 13         | John         |
+| 6          | Alex         |
++------------+--------------+
+Subjects table:
++--------------+
+| subject_name |
++--------------+
+| Math         |
+| Physics      |
+| Programming  |
++--------------+
+Examinations table:
++------------+--------------+
+| student_id | subject_name |
++------------+--------------+
+| 1          | Math         |
+| 1          | Physics      |
+| 1          | Programming  |
+| 2          | Programming  |
+| 1          | Physics      |
+| 1          | Math         |
+| 13         | Math         |
+| 13         | Programming  |
+| 13         | Physics      |
+| 2          | Math         |
+| 1          | Math         |
++------------+--------------+
+输出：
++------------+--------------+--------------+----------------+
+| student_id | student_name | subject_name | attended_exams |
++------------+--------------+--------------+----------------+
+| 1          | Alice        | Math         | 3              |
+| 1          | Alice        | Physics      | 2              |
+| 1          | Alice        | Programming  | 1              |
+| 2          | Bob          | Math         | 1              |
+| 2          | Bob          | Physics      | 0              |
+| 2          | Bob          | Programming  | 1              |
+| 6          | Alex         | Math         | 0              |
+| 6          | Alex         | Physics      | 0              |
+| 6          | Alex         | Programming  | 0              |
+| 13         | John         | Math         | 1              |
+| 13         | John         | Physics      | 1              |
+| 13         | John         | Programming  | 1              |
++------------+--------------+--------------+----------------+
+解释：
+结果表需包含所有学生和所有科目（即便测试次数为0）：
+Alice 参加了 3 次数学测试, 2 次物理测试，以及 1 次编程测试；
+Bob 参加了 1 次数学测试, 1 次编程测试，没有参加物理测试；
+Alex 啥测试都没参加；
+John  参加了数学、物理、编程测试各 1 次。
+```
+
+
+
+
+
+#### 2.思路
+
+- 结果的前三列列为表students和subjects的交叉连接，也就是笛卡尔积 
+- 而最后一列为每个学生参加每个学科的测试次数，也就是分组统计
+
+1.先连结两个表：对表Students和表Subjects求笛卡尔积
+
+```sql
+SELECT 
+  * 
+FROM 
+  Students as a 
+  CROSS JOIN Subjects as b 
+ORDER BY 
+  a.student_id, 
+  b.subject_name;
+```
+
+2.分组统计
+
+```sql
+select
+student_id, 
+subject_name,
+count(student_id) as attended_exams
+from `Examinations`
+group by student_id,subject_name
+```
+
+3. 再对刚刚得到的新表和表Examinations进行左连结（LEFT JOIN）
+
+```sql
+SELECT 
+  a.student_id, 
+  a.student_name, 
+  b.subject_name, 
+  COUNT(e.student_id) AS attended_exams 
+FROM 
+  Students as a 
+  CROSS JOIN Subjects as b 
+  LEFT JOIN Examinations e ON a.student_id = e.student_id 
+  AND b.subject_name = e.subject_name 
+GROUP BY 
+  a.student_id, 
+  b.subject_name 
+ORDER BY 
+  a.student_id, 
+  b.subject_name;
+```
+
+
+
+### [570. 至少有5名直接下属的经理](https://leetcode.cn/problems/managers-with-at-least-5-direct-reports/)
+
+查询**至少有5名直接下属**的经理 。
+
+以 **任意顺序** 返回结果表。
+
+查询结果格式如下所示。
+
+**示例 1:**
+
+```sql
+输入: 
+Employee 表:
++-----+-------+------------+-----------+
+| id  | name  | department | managerId |
++-----+-------+------------+-----------+
+| 101 | John  | A          | None      |
+| 102 | Dan   | A          | 101       |
+| 103 | James | A          | 101       |
+| 104 | Amy   | A          | 101       |
+| 105 | Anne  | A          | 101       |
+| 106 | Ron   | B          | 101       |
++-----+-------+------------+-----------+
+输出: 
++------+
+| name |
++------+
+| John |
++------+
+```
+
+
+
+- HAVING 的用法
+- 自连结
+
+```sql
+SELECT 
+  b.name 
+FROM 
+  Employee a 
+  INNER JOIN Employee b ON a.managerId = b.id 
+GROUP BY 
+  a.managerId 
+HAVING 
+  COUNT(a.managerId)>= 5;
+
+```
+
+- in + 子查询
+
+```sql
+SELECT name
+FROM Employee
+where id in
+(
+SELECT ManagerID
+FROM Employee 
+GROUP BY ManagerID
+HAVING count(ManagerID)>=5
+)
+```
+
+
+
+### [1934. 确认率](https://leetcode.cn/problems/confirmation-rate/)
+
+用户的 **确认率** 是 `'confirmed'` 消息的数量除以请求的确认消息的总数。没有请求任何确认消息的用户的确认率为 `0` 。确认率四舍五入到 **小数点后两位** 。
+
+编写一个SQL查询来查找每个用户的 确认率 。
+
+以 任意顺序 返回结果表。
+
+查询结果格式如下所示。
+
+#### **1.示例:**
+
+```sql
+输入：
+Signups 表:
++---------+---------------------+
+| user_id | time_stamp          |
++---------+---------------------+
+| 3       | 2020-03-21 10:16:13 |
+| 7       | 2020-01-04 13:57:59 |
+| 2       | 2020-07-29 23:09:44 |
+| 6       | 2020-12-09 10:39:37 |
++---------+---------------------+
+Confirmations 表:
++---------+---------------------+-----------+
+| user_id | time_stamp          | action    |
++---------+---------------------+-----------+
+| 3       | 2021-01-06 03:30:46 | timeout   |
+| 3       | 2021-07-14 14:00:00 | timeout   |
+| 7       | 2021-06-12 11:57:29 | confirmed |
+| 7       | 2021-06-13 12:58:28 | confirmed |
+| 7       | 2021-06-14 13:59:27 | confirmed |
+| 2       | 2021-01-22 00:00:00 | confirmed |
+| 2       | 2021-02-28 23:59:59 | timeout   |
++---------+---------------------+-----------+
+输出: 
++---------+-------------------+
+| user_id | confirmation_rate |
++---------+-------------------+
+| 6       | 0.00              |
+| 3       | 0.00              |
+| 7       | 1.00              |
+| 2       | 0.50              |
++---------+-------------------+
+解释:
+用户 6 没有请求任何确认消息。确认率为 0。
+用户 3 进行了 2 次请求，都超时了。确认率为 0。
+用户 7 提出了 3 个请求，所有请求都得到了确认。确认率为 1。
+用户 2 做了 2 个请求，其中一个被确认，另一个超时。确认率为 1 / 2 = 0.5。
+```
+
+
+
+#### 2.SQL 解法：
+
+```sql
+SELECT 
+  s.user_id, 
+  ROUND(
+    AVG(
+      IF(c.action = 'confirmed', 1, 0)
+    ), 
+    2
+  ) AS confirmation_rate 
+FROM 
+  Signups s 
+  LEFT JOIN Confirmations c ON s.user_id = c.user_id 
+GROUP BY 
+  s.user_id;
+```
+
+
+
+- IFNULL 的用法
+
+```sql
+ROUND(IFNULL(AVG(c.action='confirmed'), 0), 2) AS confirmation_rate
+```
+
+
+
+### [620. 有趣的电影](https://leetcode.cn/problems/not-boring-movies/)
+
+编写解决方案，找出所有影片描述为 **非** `boring` (不无聊) 的并且 **id 为奇数** 的影片。
+
+返回结果按 `rating` **降序排列**。
+
+结果格式如下示例。
+
+ 
+
+#### **1.示例：**
+
+```sql
+输入：
++---------+-----------+--------------+-----------+
+|   id    | movie     |  description |  rating   |
++---------+-----------+--------------+-----------+
+|   1     | War       |   great 3D   |   8.9     |
+|   2     | Science   |   fiction    |   8.5     |
+|   3     | irish     |   boring     |   6.2     |
+|   4     | Ice song  |   Fantacy    |   8.6     |
+|   5     | House card|   Interesting|   9.1     |
++---------+-----------+--------------+-----------+
+输出：
++---------+-----------+--------------+-----------+
+|   id    | movie     |  description |  rating   |
++---------+-----------+--------------+-----------+
+|   5     | House card|   Interesting|   9.1     |
+|   1     | War       |   great 3D   |   8.9     |
++---------+-----------+--------------+-----------+
+解释：
+我们有三部电影，它们的 id 是奇数:1、3 和 5。id = 3 的电影是 boring 的，所以我们不把它包括在答案中。
+```
+
+
+
+#### 2.SQL 解法：
+
+难点：
+
+- 字符串的匹配
+- 查询奇数
+  - mod(id,2)=1
+  - id % 2 = 1
+  - `x & 1 = 1` ，如果是 `1` 就是奇数
+
+```sql
+SELECT 
+  * 
+FROM 
+  cinema 
+WHERE 
+  description <> 'boring' 
+  AND id % 2 = 1 
+ORDER BY 
+  rating DESC;
 ```
 
