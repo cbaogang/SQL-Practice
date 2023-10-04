@@ -1,4 +1,4 @@
-# 高频 SQL 50 题（基础版）
+高频 SQL 50 题（基础版）
 
 ## Day 1:
 
@@ -1160,4 +1160,432 @@ WHERE
 ORDER BY 
   rating DESC;
 ```
+
+
+
+
+
+## Day 4
+
+### [**1251. 平均售价**](https://leetcode.cn/problems/average-selling-price/)
+
+
+
+编写解决方案以查找每种产品的平均售价。`average_price` 应该 **四舍五入到小数点后两位**。
+
+返回结果表 **无顺序要求** 。
+
+结果格式如下例所示。
+
+ 
+
+**示例 1：**
+
+```sql
+输入：
+Prices table:
++------------+------------+------------+--------+
+| product_id | start_date | end_date   | price  |
++------------+------------+------------+--------+
+| 1          | 2019-02-17 | 2019-02-28 | 5      |
+| 1          | 2019-03-01 | 2019-03-22 | 20     |
+| 2          | 2019-02-01 | 2019-02-20 | 15     |
+| 2          | 2019-02-21 | 2019-03-31 | 30     |
++------------+------------+------------+--------+
+UnitsSold table:
++------------+---------------+-------+
+| product_id | purchase_date | units |
++------------+---------------+-------+
+| 1          | 2019-02-25    | 100   |
+| 1          | 2019-03-01    | 15    |
+| 2          | 2019-02-10    | 200   |
+| 2          | 2019-03-22    | 30    |
++------------+---------------+-------+
+输出：
++------------+---------------+
+| product_id | average_price |
++------------+---------------+
+| 1          | 6.96          |
+| 2          | 16.96         |
++------------+---------------+
+解释：
+平均售价 = 产品总价 / 销售的产品数量。
+产品 1 的平均售价 = ((100 * 5)+(15 * 20) )/ 115 = 6.96
+产品 2 的平均售价 = ((200 * 15)+(30 * 30) )/ 230 = 16.96
+```
+
+
+
+注意点：
+
+- 考虑售卖为0 的情况，也就是Prices table 有值，而UnitsSold table 无值的情况
+
+#### SQL 解答：
+
+```sql
+SELECT 
+  a.product_id, 
+  IFNULL(
+    ROUND(
+      SUM(b.units * a.price)/ SUM(b.units), 
+      2
+    ), 
+    0
+  ) AS average_price 
+FROM 
+  Prices AS a 
+  LEFT JOIN UnitsSold AS b ON a.product_id = b.product_id 
+  AND b.purchase_date BETWEEN a.start_date 
+  AND a.end_date 
+GROUP BY 
+  a.product_id;
+```
+
+
+
+### [1075. 项目员工 I](https://leetcode.cn/problems/project-employees-i/)
+
+
+
+请写一个 SQL 语句，查询每一个项目中员工的 **平均** 工作年限，**精确到小数点后两位**。
+
+查询结果的格式如下：
+
+```sql
+Project 表：
++-------------+-------------+
+| project_id  | employee_id |
++-------------+-------------+
+| 1           | 1           |
+| 1           | 2           |
+| 1           | 3           |
+| 2           | 1           |
+| 2           | 4           |
++-------------+-------------+
+
+Employee 表：
++-------------+--------+------------------+
+| employee_id | name   | experience_years |
++-------------+--------+------------------+
+| 1           | Khaled | 3                |
+| 2           | Ali    | 2                |
+| 3           | John   | 1                |
+| 4           | Doe    | 2                |
++-------------+--------+------------------+
+
+Result 表：
++-------------+---------------+
+| project_id  | average_years |
++-------------+---------------+
+| 1           | 2.00          |
+| 2           | 2.50          |
++-------------+---------------+
+第一个项目中，员工的平均工作年限是 (3 + 2 + 1) / 3 = 2.00；第二个项目中，员工的平均工作年限是 (3 + 2) / 2 = 2.50
+```
+
+
+
+#### 2.SQL 解答：
+
+```sql
+SELECT 
+  a.project_id, 
+  ROUND(
+    AVG(b.experience_years), 
+    2
+  ) AS average_years 
+FROM 
+  Project AS a 
+  LEFT JOIN Employee AS b ON a.employee_id = b.employee_id 
+GROUP BY 
+  a.project_id 
+ORDER BY 
+  a.employee_id;
+```
+
+
+
+### [1633. 各赛事的用户注册率](https://leetcode.cn/problems/percentage-of-users-attended-a-contest/)
+
+编写解决方案统计出各赛事的用户注册百分率，保留两位小数。
+
+返回的结果表按 `percentage` 的 **降序** 排序，若相同则按 `contest_id` 的 **升序** 排序。
+
+返回结果如下示例所示。
+
+ 
+
+**示例 1：**
+
+```sql
+输入：
+Users 表：
++---------+-----------+
+| user_id | user_name |
++---------+-----------+
+| 6       | Alice     |
+| 2       | Bob       |
+| 7       | Alex      |
++---------+-----------+
+
+Register 表：
++------------+---------+
+| contest_id | user_id |
++------------+---------+
+| 215        | 6       |
+| 209        | 2       |
+| 208        | 2       |
+| 210        | 6       |
+| 208        | 6       |
+| 209        | 7       |
+| 209        | 6       |
+| 215        | 7       |
+| 208        | 7       |
+| 210        | 2       |
+| 207        | 2       |
+| 210        | 7       |
++------------+---------+
+输出：
++------------+------------+
+| contest_id | percentage |
++------------+------------+
+| 208        | 100.0      |
+| 209        | 100.0      |
+| 210        | 100.0      |
+| 215        | 66.67      |
+| 207        | 33.33      |
++------------+------------+
+解释：
+所有用户都注册了 208、209 和 210 赛事，因此这些赛事的注册率为 100% ，我们按 contest_id 的降序排序加入结果表中。
+Alice 和 Alex 注册了 215 赛事，注册率为 ((2/3) * 100) = 66.67%
+Bob 注册了 207 赛事，注册率为 ((1/3) * 100) = 33.33%
+```
+
+
+
+
+
+那么要找准分子和分母是什么。
+
+- 分子： Register表中每个contest对应的user_id个数
+
+- 分母： 分母就是3，因为user表里一共就3个人，当然准确来说是user表里面的所有人
+
+注意：
+
+- 100要放在round里面
+- count(1)和count(*)都差不多，没啥区别
+- 分子的count(user_id)不需要加distinct，因为(contest_id, user_id) 是联合主键，在group by contest_id之后，user_id必然是不会重复的
+
+
+
+#### 2.SQL解答：
+
+```sql
+SELECT 
+  b.contest_id, 
+  ROUND(
+    COUNT(b.user_id)/(
+      SELECT 
+        COUNT(*) 
+      FROM 
+        Users
+    )* 100, 
+    2
+  ) AS percentage 
+FROM 
+  Register AS b 
+GROUP BY 
+  b.contest_id 
+ORDER BY 
+  percentage DESC, 
+  b.contest_id ASC;
+```
+
+
+
+### [1211. 查询结果的质量和占比](https://leetcode.cn/problems/queries-quality-and-percentage/)
+
+
+
+将查询结果的质量 `quality` 定义为：
+
+> 各查询结果的评分与其位置之间比率的平均值。
+
+将劣质查询百分比 `poor_query_percentage` 为：
+
+> 评分小于 3 的查询结果占全部查询结果的百分比。
+
+编写解决方案，找出每次的 `query_name` 、 `quality` 和 `poor_query_percentage`。
+
+`quality` 和 `poor_query_percentage` 都应 **四舍五入到小数点后两位** 。
+
+以 **任意顺序** 返回结果表。
+
+结果格式如下所示：
+
+ 
+
+**示例 1：**
+
+```sql
+输入：
+Queries table:
++------------+-------------------+----------+--------+
+| query_name | result            | position | rating |
++------------+-------------------+----------+--------+
+| Dog        | Golden Retriever  | 1        | 5      |
+| Dog        | German Shepherd   | 2        | 5      |
+| Dog        | Mule              | 200      | 1      |
+| Cat        | Shirazi           | 5        | 2      |
+| Cat        | Siamese           | 3        | 3      |
+| Cat        | Sphynx            | 7        | 4      |
++------------+-------------------+----------+--------+
+输出：
++------------+---------+-----------------------+
+| query_name | quality | poor_query_percentage |
++------------+---------+-----------------------+
+| Dog        | 2.50    | 33.33                 |
+| Cat        | 0.66    | 33.33                 |
++------------+---------+-----------------------+
+解释：
+Dog 查询结果的质量为 ((5 / 1) + (5 / 2) + (1 / 200)) / 3 = 2.50
+Dog 查询结果的劣质查询百分比为 (1 / 3) * 100 = 33.33
+
+Cat 查询结果的质量为 ((2 / 5) + (3 / 3) + (4 / 7)) / 3 = 0.66
+Cat 查询结果的劣质查询百分比为 (1 / 3) * 100 = 33.33
+```
+
+
+
+#### 2.SQL 解法：
+
+- 使用IF(rating<3,1,0) 来筛选
+
+```sql
+SELECT 
+  query_name, 
+  ROUND(AVG(rating / position), 2) AS quality, 
+  ROUND(AVG(IF(rating < 3, 1, 0))* 100, 2) AS poor_query_percentage 
+FROM 
+  Queries 
+GROUP BY 
+  query_name;
+```
+
+
+
+- 直接使用AVG(rating<3)来筛选
+
+```sql
+select
+    query_name,
+    round(avg(rating/position),2) quality,
+    round(100 * avg(rating < 3),2) poor_query_percentage
+from
+    Queries
+group by
+    query_name;
+
+```
+
+
+
+### [1193. 每月交易 I](https://leetcode.cn/problems/monthly-transactions-i/)
+
+编写一个 sql 查询来查找每个月和每个国家/地区的事务数及其总金额、已批准的事务数及其总金额。
+
+以 **任意顺序** 返回结果表。
+
+查询结果格式如下所示。
+
+ 
+
+**示例 1:**
+
+```sql
+输入：
+Transactions table:
++------+---------+----------+--------+------------+
+| id   | country | state    | amount | trans_date |
++------+---------+----------+--------+------------+
+| 121  | US      | approved | 1000   | 2018-12-18 |
+| 122  | US      | declined | 2000   | 2018-12-19 |
+| 123  | US      | approved | 2000   | 2019-01-01 |
+| 124  | DE      | approved | 2000   | 2019-01-07 |
++------+---------+----------+--------+------------+
+输出：
++----------+---------+-------------+----------------+--------------------+-----------------------+
+| month    | country | trans_count | approved_count | trans_total_amount | approved_total_amount |
++----------+---------+-------------+----------------+--------------------+-----------------------+
+| 2018-12  | US      | 2           | 1              | 3000               | 1000                  |
+| 2019-01  | US      | 1           | 1              | 2000               | 2000                  |
+| 2019-01  | DE      | 1           | 1              | 2000               | 2000                  |
++----------+---------+-------------+----------------+--------------------+-----------------------+
+```
+
+
+
+难点：
+
+- 1.使用DATE_FORMAT()函数把日期转换成月份 ：
+
+  | %Y   | Year as a numeric, 4-digit value                             |
+  | ---- | ------------------------------------------------------------ |
+  | %y   | Year as a numeric, 2-digit value                             |
+  | %M   | Month name in full (January to December)                     |
+  | %m   | Month name as a numeric value (00 to 12)                     |
+  | %D   | Day of the month as a numeric value, followed by suffix (1st, 2nd, 3rd, ...) |
+  | %d   | Day of the month as a numeric value (01 to 31)               |
+
+- 2.count(),sum()函数在聚合时加入条件 （sum()函数中返回0,count()函数中返回null可以过滤掉不符合记录）
+
+- 因为count统计原理：只要有值不是null都会计数
+
+
+
+#### 2.SQL 解答：
+
+```sql
+SELECT 
+  DATE_FORMAT(trans_date, "%Y-%m") AS month, 
+  country, 
+  COUNT(*) AS trans_count, 
+  COUNT(IF(state = 'approved', 1, NULL)) AS approved_count, 
+  SUM(amount) AS trans_total_amount, 
+  SUM(IF(state = 'approved', amount, 0)) AS approved_total_amount 
+FROM 
+  Transactions 
+GROUP BY 
+  month, 
+  country;
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
