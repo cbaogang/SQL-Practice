@@ -1563,29 +1563,414 @@ GROUP BY
 
 
 
+## Day 5
+
+### [1174. 即时食物配送 II](https://leetcode.cn/problems/immediate-food-delivery-ii/)
+
+如果顾客期望的配送日期和下单日期相同，则该订单称为 「**即时订单**」，否则称为「**计划订单**」。
+
+「**首次订单**」是顾客最早创建的订单。我们保证一个顾客只会有一个「首次订单」。
+
+编写解决方案以获取即时订单在所有用户的首次订单中的比例。**保留两位小数。**
+
+结果示例如下所示：
+
+ 
+
+#### **1.示例：**
+
+```sql
+输入：
+Delivery 表：
++-------------+-------------+------------+-----------------------------+
+| delivery_id | customer_id | order_date | customer_pref_delivery_date |
++-------------+-------------+------------+-----------------------------+
+| 1           | 1           | 2019-08-01 | 2019-08-02                  |
+| 2           | 2           | 2019-08-02 | 2019-08-02                  |
+| 3           | 1           | 2019-08-11 | 2019-08-12                  |
+| 4           | 3           | 2019-08-24 | 2019-08-24                  |
+| 5           | 3           | 2019-08-21 | 2019-08-22                  |
+| 6           | 2           | 2019-08-11 | 2019-08-13                  |
+| 7           | 4           | 2019-08-09 | 2019-08-09                  |
++-------------+-------------+------------+-----------------------------+
+输出：
++----------------------+
+| immediate_percentage |
++----------------------+
+| 50.00                |
++----------------------+
+解释：
+1 号顾客的 1 号订单是首次订单，并且是计划订单。
+2 号顾客的 2 号订单是首次订单，并且是即时订单。
+3 号顾客的 5 号订单是首次订单，并且是计划订单。
+4 号顾客的 7 号订单是首次订单，并且是即时订单。
+因此，一半顾客的首次订单是即时的。
+```
 
 
 
 
 
+#### 2.解题思路
+
+
+- 先将每个消费者的第一次消费日期找出来
+
+  - MIN 函数的使用
+  - GROUP BY 
+
+```sql
+SELECT customer_id, MIN(order_date) AS order_date
+FROM Delivery 
+GROUP BY customer_id;
+```
+
+
+
+- 再将临时表扩展customer_pref_delivery_date字段,当满足order_date = customer_pref_delivery_date时进行计数除以总人数
+
+```sql
+SELECT 
+  ROUND(SUM(order_date=customer_pref_delivery_date)*100/COUNT(*),2) 
+AS immediate_percentage 
+FROM Delivery 
+WHERE (customer_id ,order_date ) in 
+	(SELECT customer_id,MIN(order_date) AS order_date 
+     FROM Delivery 
+     GROUP BY customer_id 
+    );
+```
 
 
 
 
 
+### [550. 游戏玩法分析 IV](https://leetcode.cn/problems/game-play-analysis-iv/)
+
+编写解决方案，报告在首次登录的第二天再次登录的玩家的 **比率**，**四舍五入到小数点后两位**。换句话说，你需要计算从**首次登录日期开始至少连续两天登录的玩家的数量，然后除以玩家总数**。
+
+结果格式如下所示：
+
+ 
+
+**示例 1：**
+
+```sql
+输入：
+Activity table:
++-----------+-----------+------------+--------------+
+| player_id | device_id | event_date | games_played |
++-----------+-----------+------------+--------------+
+| 1         | 2         | 2016-03-01 | 5            |
+| 1         | 2         | 2016-03-02 | 6            |
+| 2         | 3         | 2017-06-25 | 1            |
+| 3         | 1         | 2016-03-02 | 0            |
+| 3         | 4         | 2018-07-03 | 5            |
++-----------+-----------+------------+--------------+
+输出：
++-----------+
+| fraction  |
++-----------+
+| 0.33      |
++-----------+
+解释：
+只有 ID 为 1 的玩家在第一天登录后才重新登录，所以答案是 1/3 = 0.33
+```
 
 
 
 
 
+### 解题思路
+
+先过滤出每个用户的首次登陆日期，然后左关联，筛选次日存在的记录的比例
+
+- **首次登录日期开始至少连续两天登录的玩家的数量，然后除以玩家总数**。
+
+1. 首次登陆的玩家
+
+```sql
+select player_id, min(event_date) as event_date
+from activity
+group by player_id
+```
+
+2. 首次登录的第二天登录
+
+```sql
+DATEDIFF(a.event,b.event_date)=1
+```
+
+
+
+```sql
+select round(avg(a.event_date is not null), 2) fraction
+from 
+    (select player_id, min(event_date) as login
+    from activity
+    group by player_id) p 
+left join activity a 
+on p.player_id=a.player_id and datediff(a.event_date, p.login)=1
+
+```
+
+其他方法：
+
+```sql
+select ROUND(COUNT(b.event_date)/count(*),2) AS fraction 
+from 
+	(SELECT player_id,min(event_date) AS event_date 
+     FROM Activity 
+     GROUP BY player_id) a 
+LEFT JOIN Activity b 
+ON a.player_id=b.player_id and datediff(b.event_date,a.event_date)=1;
+```
+
+
+
+```sql
+WITH PlayerFirstLogin AS (
+    SELECT
+        player_id,
+        MIN(event_date) AS first_login_date
+    FROM
+        Activity
+    GROUP BY
+        player_id
+)
+
+SELECT
+    ROUND(SUM(CASE WHEN DATEDIFF(a.event_date, pfl.first_login_date) = 1 THEN 1 ELSE 0 END) / COUNT(DISTINCT a.player_id), 2) AS fraction
+FROM
+    Activity a
+JOIN
+    PlayerFirstLogin pfl ON a.player_id = pfl.player_id;
+
+```
+
+
+
+### [2356. 每位教师所教授的科目种类的数量](https://leetcode.cn/problems/number-of-unique-subjects-taught-by-each-teacher/)
+
+
+
+查询每位老师在大学里教授的**科目种类**的数量。
+
+以 **任意顺序** 返回结果表。
+
+查询结果格式示例如下。
+
+ 
+
+**示例 1:**
+
+```sql
+输入: 
+Teacher 表:
++------------+------------+---------+
+| teacher_id | subject_id | dept_id |
++------------+------------+---------+
+| 1          | 2          | 3       |
+| 1          | 2          | 4       |
+| 1          | 3          | 3       |
+| 2          | 1          | 1       |
+| 2          | 2          | 1       |
+| 2          | 3          | 1       |
+| 2          | 4          | 1       |
++------------+------------+---------+
+输出:  
++------------+-----+
+| teacher_id | cnt |
++------------+-----+
+| 1          | 2   |
+| 2          | 4   |
++------------+-----+
+解释: 
+教师 1:
+  - 他在 3、4 系教科目 2。
+  - 他在 3 系教科目 3。
+教师 2:
+  - 他在 1 系教科目 1。
+  - 他在 1 系教科目 2。
+  - 他在 1 系教科目 3。
+  - 他在 1 系教科目 4。
+```
+
+
+
+```sql
+SELECT teacher_id ,COUNT(DISTINCT subject_id) AS cnt
+FROM Teacher 
+GROUP BY 1; 
+```
+
+
+
+#### Pandas:
+
+解题思路
+
+- 分组和聚合：unique_subjects = teacher.groupby('teacher_id')['subject_id'].nunique().reset_index() 这行代码使用 groupby 函数按照 'teacher_id' 列对数据进行分组，然后使用 nunique 函数获取每个分组中不重复的 'subject_id' 的数量。 这意味着在每个教师的分组中，我们只计算不重复的科目数。最后，使用 reset_index 方法重置索引，生成一个新的 DataFrame。
+- 重命名列名：unique_subjects = unique_subjects.rename(columns={'subject_id': 'cnt'}) 这行代码使用 rename 函数将 DataFrame 的列名 'subject_id' 改为 'cnt'，以更好地表示每位教师所教授的科目种类数量。
+
+
+
+```python
+import pandas as pd
+
+def count_unique_subjects(teacher: pd.DataFrame) -> pd.DataFrame:
+    unique_subjects = teacher.groupby('teacher_id')['subject_id'].nunique().reset_index()
+    unique_subjects = unique_subjects.rename(columns={'subject_id': 'cnt'})
+    return unique_subjects
+
+```
+
+
+
+### [1141. 查询近30天活跃用户数](https://leetcode.cn/problems/user-activity-for-the-past-30-days-i/)
+
+
+
+编写解决方案，统计截至 `2019-07-27`（包含2019-07-27），近 `30` 天的每日活跃用户数（当天只要有一条活动记录，即为活跃用户）。
+
+以 **任意顺序** 返回结果表。
+
+结果示例如下。
+
+ 
+
+**示例 1:**
+
+```sql
+输入：
+Activity table:
++---------+------------+---------------+---------------+
+| user_id | session_id | activity_date | activity_type |
++---------+------------+---------------+---------------+
+| 1       | 1          | 2019-07-20    | open_session  |
+| 1       | 1          | 2019-07-20    | scroll_down   |
+| 1       | 1          | 2019-07-20    | end_session   |
+| 2       | 4          | 2019-07-20    | open_session  |
+| 2       | 4          | 2019-07-21    | send_message  |
+| 2       | 4          | 2019-07-21    | end_session   |
+| 3       | 2          | 2019-07-21    | open_session  |
+| 3       | 2          | 2019-07-21    | send_message  |
+| 3       | 2          | 2019-07-21    | end_session   |
+| 4       | 3          | 2019-06-25    | open_session  |
+| 4       | 3          | 2019-06-25    | end_session   |
++---------+------------+---------------+---------------+
+输出：
++------------+--------------+ 
+| day        | active_users |
++------------+--------------+ 
+| 2019-07-20 | 2            |
+| 2019-07-21 | 2            |
++------------+--------------+ 
+解释：注意非活跃用户的记录不需要展示。
+```
+
+
+
+注意点：
+
+- datediff还要限制>=0不然会查询到07-27之后的数据
+
+- 在编写用户类型的题目时，注意观察题目给出的表是否设计主键，是否存在重复，记得加上distinct
+- 日期在比较时，需要在时间上加上引号
+
+```sql
+SELECT activity_date AS day, COUNT(DISTINCT user_id) AS active_users 
+FROM Activity 
+WHERE DATEDIfF("2019-07-27",activity_date) <30 AND DATEDIfF("2019-07-27",activity_date)>=0 
+GROUP BY activity_date;
+```
 
 
 
 
 
+### [1084. 销售分析III](https://leetcode.cn/problems/sales-analysis-iii/)
+
+编写解决方案，报告`2019年春季`才售出的产品。即**仅**在`**2019-01-01**`至`**2019-03-31**`（含）之间出售的商品。
+
+以 **任意顺序** 返回结果表。
+
+结果格式如下所示。
+
+ 
+
+**示例 1:**
+
+```sql
+输入：
+Product table:
++------------+--------------+------------+
+| product_id | product_name | unit_price |
++------------+--------------+------------+
+| 1          | S8           | 1000       |
+| 2          | G4           | 800        |
+| 3          | iPhone       | 1400       |
++------------+--------------+------------+
+Sales table:
++-----------+------------+----------+------------+----------+-------+
+| seller_id | product_id | buyer_id | sale_date  | quantity | price |
++-----------+------------+----------+------------+----------+-------+
+| 1         | 1          | 1        | 2019-01-21 | 2        | 2000  |
+| 1         | 2          | 2        | 2019-02-17 | 1        | 800   |
+| 2         | 2          | 3        | 2019-06-02 | 1        | 800   |
+| 3         | 3          | 4        | 2019-05-13 | 2        | 2800  |
++-----------+------------+----------+------------+----------+-------+
+输出：
++-------------+--------------+
+| product_id  | product_name |
++-------------+--------------+
+| 1           | S8           |
++-------------+--------------+
+解释:
+id为1的产品仅在2019年春季销售。
+id为2的产品在2019年春季销售，但也在2019年春季之后销售。
+id 3的产品在2019年春季之后销售。
+我们只退回产品1，因为它是2019年春季才销售的产品。
+```
 
 
 
+难点：
+
+- 使用having
+- MIN(), MAX()函数的使用
 
 
+
+不用HAVING,用where
+
+```sql
+select s.product_id, p.product_name
+from Sales s
+JOIN Product p
+ON s.product_id=p.product_id
+where s.product_id not in (
+    select product_id
+    from sales
+    where sale_date >= '2019-04-01' or sale_date < '2019-01-01')
+GROUP BY s.product_id;
+```
+
+
+
+使用HAVING
+
+```sql
+select sales.product_id as product_id, product.product_name as product_name
+from sales left join product on sales.product_id = product.product_id
+group by product_id
+having count(sale_date between '2019-01-01' and '2019-03-31' or null) = count(*)
+
+```
+
+
+
+```sql
+HAVING MIN(sale_date) >= '2019-01-01' AND MAX(sale_date) <= '2019-03-31'
+```
 
