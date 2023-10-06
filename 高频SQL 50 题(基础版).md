@@ -998,7 +998,10 @@ SELECT
   b.name 
 FROM 
   Employee a 
-  INNER JOIN Employee b ON a.managerId = b.id 
+JOIN 
+	Employee b 
+ON 
+	a.managerId = b.id 
 GROUP BY 
   a.managerId 
 HAVING 
@@ -1643,6 +1646,22 @@ WHERE (customer_id ,order_date ) in
 
 
 
+```sql
+SELECT 
+	ROUND(AVG(order_date = customer_pref_delivery_date)*100,2) AS immediate_percentage 
+FROM 
+	Delivery 
+WHERE 
+	(customer_id,order_date) 
+IN 
+	(SELECT 
+         customer_id,min(order_date) AS order_date 
+     FROM 
+         Delivery 
+     GROUP BY 
+         customer_id);
+```
+
 
 
 ### [550. 游戏玩法分析 IV](https://leetcode.cn/problems/game-play-analysis-iv/)
@@ -1972,5 +1991,211 @@ having count(sale_date between '2019-01-01' and '2019-03-31' or null) = count(*)
 
 ```sql
 HAVING MIN(sale_date) >= '2019-01-01' AND MAX(sale_date) <= '2019-03-31'
+```
+
+
+
+## Day 6
+
+### [619. 只出现一次的最大数字](https://leetcode.cn/problems/biggest-single-number/)
+
+
+
+**单一数字** 是在 `MyNumbers` 表中只出现一次的数字。
+
+找出最大的 **单一数字** 。如果不存在 **单一数字** ，则返回 `null` 。
+
+查询结果如下例所示。
+
+#### **1.示例 ：**
+
+```
+输入：
+MyNumbers 表：
++-----+
+| num |
++-----+
+| 8   |
+| 8   |
+| 3   |
+| 3   |
+| 1   |
+| 4   |
+| 5   |
+| 6   |
++-----+
+输出：
++-----+
+| num |
++-----+
+| 6   |
++-----+
+解释：单一数字有 1、4、5 和 6 。
+6 是最大的单一数字，返回 6 。
+```
+
+**示例 2：**
+
+```SQL
+输入：
+MyNumbers table:
++-----+
+| num |
++-----+
+| 8   |
+| 8   |
+| 7   |
+| 7   |
+| 3   |
+| 3   |
+| 3   |
++-----+
+输出：
++------+
+| num  |
++------+
+| null |
++------+
+解释：输入的表中不存在单一数字，所以返回 null 。
+```
+
+
+
+难点：
+
+- 如何找出只出现一次的数字
+
+- 空值时如何返回NULL
+
+  - 使用聚合函数进行空值null值的转换: 只要我们的表格为空，加入任何SUM/AVG/MAX/MIN函数，我们都可以得到null值的结果。
+
+  - ifnull函数定位：用于判断第一个表达式是否为 NULL，如果为 NULL 则返回第二个参数的值，如果不为 NULL 则返回第一个参数的值。
+
+  - select 空 param1 -> param1：null
+
+  - select param1 from 空 —> param1：空
+
+  - 可以使用select语句进行转换，但空值应直接写在select中而非from中
+
+    
+
+```sql
+select max(a.num) AS num FROM (
+SELECT num FROM MyNumbers 
+GROUP BY num
+HAVING COUNT(*)=1) a;
+```
+
+
+
+
+
+### [1045. 买下所有产品的客户](https://leetcode.cn/problems/customers-who-bought-all-products/)
+
+编写解决方案，报告 `Customer` 表中购买了 `Product` 表中所有产品的客户的 id。
+
+返回结果表 **无顺序要求** 。
+
+返回结果格式如下所示。
+
+ 
+
+**示例 1：**
+
+```sql
+输入：
+Customer 表：
++-------------+-------------+
+| customer_id | product_key |
++-------------+-------------+
+| 1           | 5           |
+| 2           | 6           |
+| 3           | 5           |
+| 3           | 6           |
+| 1           | 6           |
++-------------+-------------+
+Product 表：
++-------------+
+| product_key |
++-------------+
+| 5           |
+| 6           |
++-------------+
+输出：
++-------------+
+| customer_id |
++-------------+
+| 1           |
+| 3           |
++-------------+
+解释：
+购买了所有产品（5 和 6）的客户的 id 是 1 和 3 。
+```
+
+
+
+```sql
+SELECT 
+	customer_id 
+FROM  
+	Customer 
+GROUP BY 
+	customer_id 
+HAVING COUNT(DISTINCT product_key) = (SELECT COUNT(*) from Product);
+```
+
+
+
+[1731. 每位经理的下属员工数量](https://leetcode.cn/problems/the-number-of-employees-which-report-to-each-employee/)
+
+
+
+将至少有一个其他员工需要向他汇报的员工，视为一个经理。
+
+编写SQL查询需要听取汇报的所有经理的ID、名称、直接向该经理汇报的员工人数，以及这些员工的平均年龄，其中该平均年龄需要四舍五入到最接近的整数。
+
+返回的结果集需要按照 `employee_id `进行排序。
+
+查询结果的格式如下：
+
+ 
+
+**注意点：**
+
+- 使用JOIN 而不是left 或者right JOIN, 直接剔除了NULL 值
+
+```sql
+Employees table:
++-------------+---------+------------+-----+
+| employee_id | name    | reports_to | age |
++-------------+---------+------------+-----+
+| 9           | Hercy   | null       | 43  |
+| 6           | Alice   | 9          | 41  |
+| 4           | Bob     | 9          | 36  |
+| 2           | Winston | null       | 37  |
++-------------+---------+------------+-----+
+
+Result table:
++-------------+-------+---------------+-------------+
+| employee_id | name  | reports_count | average_age |
++-------------+-------+---------------+-------------+
+| 9           | Hercy | 2             | 39          |
++-------------+-------+---------------+-------------+
+Hercy 有两个需要向他汇报的员工, 他们是 Alice and Bob. 他们的平均年龄是 (41+36)/2 = 38.5, 四舍五入的结果是 39.
+```
+
+
+
+```sql
+SELECT 
+	b.employee_id,b.name,COUNT(a.name) as reports_count,round(AVG(a.age),0) as average_age
+FROM 
+	Employees a
+JOIN 
+	Employees b 
+ON 
+	a.reports_to=b.employee_id 
+GROUP BY b.employee_id 
+ORDER BY 1;
 ```
 
