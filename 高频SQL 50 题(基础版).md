@@ -2146,7 +2146,7 @@ HAVING COUNT(DISTINCT product_key) = (SELECT COUNT(*) from Product);
 
 
 
-[1731. 每位经理的下属员工数量](https://leetcode.cn/problems/the-number-of-employees-which-report-to-each-employee/)
+### [1731. 每位经理的下属员工数量](https://leetcode.cn/problems/the-number-of-employees-which-report-to-each-employee/)
 
 
 
@@ -2197,5 +2197,718 @@ ON
 	a.reports_to=b.employee_id 
 GROUP BY b.employee_id 
 ORDER BY 1;
+```
+
+
+
+## Day 7
+
+#### [1789. 员工的直属部门](https://leetcode.cn/problems/primary-department-for-each-employee/)
+
+一个员工可以属于多个部门。当一个员工加入**超过一个部门**的时候，他需要决定哪个部门是他的直属部门。请注意，当员工只加入一个部门的时候，那这个部门将默认为他的直属部门，虽然表记录的值为`'N'`.
+
+请编写解决方案，查出员工所属的直属部门。
+
+返回结果 **没有顺序要求** 。
+
+返回结果格式如下例子所示：
+
+ 
+
+**示例 1：**
+
+```sql
+输入：
+Employee table:
++-------------+---------------+--------------+
+| employee_id | department_id | primary_flag |
++-------------+---------------+--------------+
+| 1           | 1             | N            |
+| 2           | 1             | Y            |
+| 2           | 2             | N            |
+| 3           | 3             | N            |
+| 4           | 2             | N            |
+| 4           | 3             | Y            |
+| 4           | 4             | N            |
++-------------+---------------+--------------+
+输出：
++-------------+---------------+
+| employee_id | department_id |
++-------------+---------------+
+| 1           | 1             |
+| 2           | 1             |
+| 3           | 3             |
+| 4           | 3             |
++-------------+---------------+
+解释：
+- 员工 1 的直属部门是 1
+- 员工 2 的直属部门是 1
+- 员工 3 的直属部门是 3
+- 员工 4 的直属部门是 3
+```
+
+
+
+
+
+第一种情况：
+
+```sql
+SELECT e.employee_id, e.department_id 
+FROM Employee e
+WHERE e.primary_flag="Y";
+```
+
+
+
+第二种情况：
+
+```sql
+SELECT employee_id  FROM Employee 
+GROUP BY employee_id HAVING COUNT(department_id)=1;
+```
+
+
+
+```sqlW
+SELECT e.employee_id, e.department_id 
+FROM Employee e
+WHERE e.primary_flag="Y"
+OR (e.employee_id in (SELECT employee_id  FROM Employee 
+GROUP BY employee_id HAVING COUNT(department_id)=1));  
+```
+
+
+
+```sql
+with a as (
+select 
+employee_id,
+department_id,
+primary_flag,
+count(*) over(partition by employee_id) cnt 
+from Employee
+)
+
+
+select 
+employee_id,department_id
+from a 
+where cnt = 1 or primary_flag = 'Y'
+```
+
+
+
+
+
+#### [610. 判断三角形](https://leetcode.cn/problems/triangle-judgement/)
+
+**示例 1:**
+
+```
+输入: 
+Triangle 表:
++----+----+----+
+| x  | y  | z  |
++----+----+----+
+| 13 | 15 | 30 |
+| 10 | 20 | 15 |
++----+----+----+
+输出: 
++----+----+----+----------+
+| x  | y  | z  | triangle |
++----+----+----+----------+
+| 13 | 15 | 30 | No       |
+| 10 | 20 | 15 | Yes      |
++----+----+----+----------+
+```
+
+
+
+
+
+方法一: case when
+
+```sql
+SELECT 
+    x,
+    y,
+    z,
+    CASE
+        WHEN x + y > z AND x + z > y AND y + z > x THEN 'Yes'
+        ELSE 'No'
+    END AS 'triangle'
+FROM
+    triangle;
+```
+
+
+
+方法二：IF
+
+```sql
+SELECT x,y,z , IF(x+y>z AND x+z>y AND y+z>x,"Yes","No") AS triangle
+FROM triangle;
+```
+
+
+
+### 窗口函数：
+
+- `OVER` 是用于定义窗口规范（Window Specification）的子句，它通常与窗口函数一起使用。窗口规范定义了窗口函数操作的数据集合，即指定在哪个范围内执行窗口函数。`
+
+- 语法结构如下：
+
+  ```sql
+  SELECT
+    column1,
+    column2,
+    window_function() OVER (PARTITION BY partition_column ORDER BY order_column ROWS BETWEEN start_row AND end_row) AS result_column
+  FROM
+    your_table;
+  ```
+
+  - **`PARTITION BY partition_column`**: 按照指定的列进行分区，窗口函数将在每个分区内独立计算。如果省略 `PARTITION BY`，整个结果集将被视为一个分区。
+  - **`ORDER BY order_column`**: 对分区内的行进行排序，以便窗口函数按照指定的顺序执行。如果不提供 `ORDER BY`，窗口函数将在分区内的未排序行上执行。
+  - **`ROWS BETWEEN start_row AND end_row`**: 定义窗口的行范围，指定窗口函数计算的行的范围。常见的选项包括 `UNBOUNDED PRECEDING`（从分区的第一行开始），`CURRENT ROW`（当前行），以及 `n PRECEDING` 和 `n FOLLOWING`（相对于当前行的前n行和后n行）等。
+
+  窗口规范中的 `OVER` 子句使得窗口函数能够在指定的数据子集上执行计算，而不是在整个结果集上进行计算。
+
+  举个例子：
+
+  ```sql
+  SELECT
+    department_id,
+    salary,
+    AVG(salary) OVER (PARTITION BY department_id ORDER BY salary) AS avg_salary
+  FROM
+    Employee;
+  ```
+
+  在这个例子中，`OVER (PARTITION BY department_id ORDER BY salary)` 定义了一个窗口规范，它将结果集按照 `department_id` 进行分区，并在每个分区内按照 `salary` 进行排序。然后，`AVG(salary)` 窗口函数将在每个分区内计算薪水的平均值。
+
+- `LEAD` 和 `LAG` 是 SQL 中的窗口函数，它们用于访问结果集中当前行之前或之后的行的值
+
+- **LEAD:**
+
+  - `LEAD(column, offset, default)` 返回在当前行之后指定偏移量处的行的值。
+  - `column`: 要获取值的列。
+  - `offset`: 行偏移量，指定要查找的行数。默认为 1。
+  - `default`: 如果未找到指定偏移量的行，则返回的默认值。
+
+  例子：
+
+  ```
+  sqlCopy codeSELECT num, LEAD(num, 1) OVER (ORDER BY id) AS next_num
+  FROM Logs;
+  ```
+
+- **LAG:**
+
+  - `LAG(column, offset, default)` 返回在当前行之前指定偏移量处的行的值。
+  - `column`: 要获取值的列。
+  - `offset`: 行偏移量，指定要查找的行数。默认为 1。
+  - `default`: 如果未找到指定偏移量的行，则返回的默认值。
+
+  例子：
+
+  ```
+  sqlCopy codeSELECT num, LAG(num, 1) OVER (ORDER BY id) AS prev_num
+  FROM Logs;
+  ```
+
+
+
+- 使用 `PARTITION BY` 子句时，你将在结果集中创建多个独立的窗口，每个窗口都是根据指定的列进行分区的。窗口函数将在每个分区内进行计算。
+
+  ```
+  sqlCopy codeSELECT
+     department_id,
+     employee_id,
+     salary,
+     AVG(salary) OVER (PARTITION BY department_id) as avg_salary
+  FROM Employee;
+  ```
+
+  `AVG(salary) OVER (PARTITION BY department_id)` 计算了每个部门内员工薪水的平均值，因此窗口根据 `department_id` 进行分区。
+
+- 没有使用 `PARTITION BY`，则整个结果集将被视为一个窗口。窗口函数将在整个结果集上执行计算。
+
+  ```
+  sqlCopy codeSELECT
+     employee_id,
+     department_id,
+     salary,
+     AVG(salary) OVER () as overall_avg_salary
+  FROM Employee;
+  ```
+
+  在这个例子中，`AVG(salary) OVER ()` 计算了整个结果集中员工薪水的平均值，因为没有指定分区。
+
+- 在 SQL 中，你不能在 `WHERE` 子句中直接引用使用窗口函数计算的别名。这是因为 `WHERE` 子句在查询执行的早期阶段进行筛选，而窗口函数的计算是在结果集形成的晚期阶段进行的。希望筛选出 `total_weight` 小于等于 1000 的行，你可以使用子查询或通用表表达式 (CTE) 来实现。以下是使用子查询的一个例子：
+
+  
+
+  
+
+  
+
+### [180. 连续出现的数字](https://leetcode.cn/problems/consecutive-numbers/)
+
+找出所有至少连续出现三次的数字。
+
+返回的结果表中的数据可以按 **任意顺序** 排列。
+
+结果格式如下面的例子所示：
+
+**示例 1:**
+
+```sql
+输入：
+Logs 表：
++----+-----+
+| id | num |
++----+-----+
+| 1  | 1   |
+| 2  | 1   |
+| 3  | 1   |
+| 4  | 2   |
+| 5  | 1   |
+| 6  | 2   |
+| 7  | 2   |
++----+-----+
+输出：
+Result 表：
++-----------------+
+| ConsecutiveNums |
++-----------------+
+| 1               |
++-----------------+
+解释：1 是唯一连续出现至少三次的数字。
+```
+
+
+
+难点：
+
+- 连续出现的数字的检测
+- distinct 和 多表连接的条件
+- 窗口函数
+
+
+
+```sql
+SELECT DISTINCT
+    l1.Num AS ConsecutiveNums
+FROM
+    Logs l1,
+    Logs l2,
+    Logs l3
+WHERE
+    l1.Id = l2.Id - 1
+    AND l2.Id = l3.Id - 1
+    AND l1.Num = l2.Num
+    AND l2.Num = l3.Num
+;
+
+```
+
+
+
+```sql
+WITH ConsecutiveNums AS (
+    SELECT
+        num,
+        LEAD(num, 1) OVER (ORDER BY id) AS next_num,
+        LAG(num, 1) OVER (ORDER BY id) AS prev_num
+    FROM Logs
+)
+
+SELECT DISTINCT num AS ConsecutiveNums
+FROM ConsecutiveNums
+WHERE num = next_num AND num = prev_num;
+```
+
+
+
+
+
+方法 ：
+row_number() over([partition by value_expression,...n] order by columnName)
+
+- `ROW_NUMBER()` 是 SQL 中的窗口函数之一，用于为查询结果集中的每一行分配一个唯一的行号。
+
+```sql
+SELECT id, num,
+ROW_NUMBER() OVER (PARTITION BY num ORDER BY id) AS SerialGroup
+```
+
+![image-20231007103603923](D:\kylec\Documents\Programming Files\笔记\算法与数据结构体系学习班\media\image-20231007103603923.png)
+
+
+
+- 两个列（**SerialNum**，**SerialGroup**）对应相减，只要连续，相减得到的值是一样的。不连续相减得到的值也不同。
+
+
+
+```sql
+SELECT id, num , row_number() over(order by id) - row_number() over (partition by num order by id) as SerialNumberSubGroup
+FROM Lags
+```
+
+
+
+![image-20231007103855807](D:\kylec\Documents\Programming Files\笔记\算法与数据结构体系学习班\media\image-20231007103855807.png)
+
+\
+
+```sql
+SELECT num, count(num) as SerialCount 
+FROM (
+	SELECT id, num , row_number() over(order by id) - row_number() over (partition by num order by id) as SerialNumber
+FROM Lags
+) as sub 
+GROUP BY num, SerialNUmberSubGroup HAVING COUNT(num)>=3
+```
+
+
+
+```sql
+SELECT DISTINCT Num FROM (
+SELECT Num,COUNT(1) as SerialCount FROM 
+(SELECT Id,Num,
+row_number() over(order by id) -
+ROW_NUMBER() over(partition by Num order by Id) as SerialNumberSubGroup
+FROM ContinueNumber) as Sub
+GROUP BY Num,SerialNumberSubGroup HAVING COUNT(1) >= 3) as Result
+```
+
+
+
+
+
+拓展结论：
+
+- 如果一个num连续出现时，那么它出现的[真实序列]-它出现的次数一定是个定值。
+  - 第一步重排的serialNum表示：这个num出现的 `真实序列`，也就是说在原始数据中，它是第几个出现的；
+  - 第二步重排的serialGroup表示：这个num是第几次出现的；
+
+
+
+### [1164. 指定日期的产品价格](https://leetcode.cn/problems/product-price-at-a-given-date/)
+
+编写一个解决方案，找出在 `2019-08-16` 时全部产品的价格，假设所有产品在修改前的价格都是 `10` **。**
+
+以 **任意顺序** 返回结果表。
+
+结果格式如下例所示。
+
+ 
+
+**示例 1:**
+
+```sql
+输入：
+Products 表:
++------------+-----------+-------------+
+| product_id | new_price | change_date |
++------------+-----------+-------------+
+| 1          | 20        | 2019-08-14  |
+| 2          | 50        | 2019-08-14  |
+| 1          | 30        | 2019-08-15  |
+| 1          | 35        | 2019-08-16  |
+| 2          | 65        | 2019-08-17  |
+| 3          | 20        | 2019-08-18  |
++------------+-----------+-------------+
+输出：
++------------+-------+
+| product_id | price |
++------------+-------+
+| 2          | 50    |
+| 1          | 35    |
+| 3          | 10    |
++------------+-------+
+```
+
+
+
+
+
+#### 方法：`left join` 和 `ifnull`
+
+1. 找出所有的产品：
+
+```sql
+select distinct product_id from products 
+```
+
+2. 找到 `2019-08-16` 前所有有改动的产品的最新价格。
+   - 注意：不能直接select new_price, 因为没法把最大的日期和价格同时查出来，需要外面再套一层
+
+```sql
+SELECT product_id, max(change_date) AS change_date
+FROM products
+WHERE change_date<="2019-08-16"
+GROUP BY product_id;
+```
+
+![image-20231007113909201](D:\kylec\Documents\Programming Files\笔记\算法与数据结构体系学习班\media\image-20231007113909201.png)
+
+```sql
+SELECT product_id,new_price 
+FROM Products WHERE (product_id,change_date) 
+IN (
+SELECT product_id, max(change_date) AS change_date
+FROM products
+WHERE change_date<="2019-08-16"
+GROUP BY product_id
+);
+```
+
+![image-20231007114159340](D:\kylec\Documents\Programming Files\笔记\算法与数据结构体系学习班\media\image-20231007114159340.png)
+
+3. 使用 `left join` 得到所有产品的最新价格，如果没有设置为 `10`
+
+
+
+```sql
+SELECT
+    p1.product_id,
+    IFNULL(p2.new_price, 10) AS price
+FROM (
+    SELECT DISTINCT product_id
+    FROM products
+) p1
+LEFT JOIN (
+    SELECT
+        product_id,
+        new_price
+    FROM Products
+    WHERE (product_id, change_date) IN (
+        SELECT
+            product_id,
+            MAX(change_date) AS change_date
+        FROM products
+        WHERE change_date <= '2019-08-16'
+        GROUP BY product_id
+    )
+) p2 ON p1.product_id = p2.product_id;
+```
+
+
+
+### [1204. 最后一个能进入巴士的人](https://leetcode.cn/problems/last-person-to-fit-in-the-bus/)
+
+```
+turn 决定了候车乘客上巴士的顺序，其中 turn=1 表示第一个上巴士，turn=n 表示最后一个上巴士。
+weight 表示候车乘客的体重，以千克为单位。
+```
+
+有一队乘客在等着上巴士。然而，巴士有`1000` **千克** 的重量限制，所以其中一部分乘客可能无法上巴士。
+
+编写解决方案找出 **最后一个** 上巴士且不超过重量限制的乘客，并报告 `person_name` 。题目测试用例确保顺位第一的人可以上巴士且不会超重。
+
+返回结果格式如下所示。
+
+ 
+
+**示例 1：**
+
+```sql
+输入：
+Queue 表
++-----------+-------------+--------+------+
+| person_id | person_name | weight | turn |
++-----------+-------------+--------+------+
+| 5         | Alice       | 250    | 1    |
+| 4         | Bob         | 175    | 5    |
+| 3         | Alex        | 350    | 2    |
+| 6         | John Cena   | 400    | 3    |
+| 1         | Winston     | 500    | 6    |
+| 2         | Marie       | 200    | 4    |
++-----------+-------------+--------+------+
+输出：
++-------------+
+| person_name |
++-------------+
+| John Cena   |
++-------------+
+解释：
+为了简化，Queue 表按 turn 列由小到大排序。
++------+----+-----------+--------+--------------+
+| Turn | ID | Name      | Weight | Total Weight |
++------+----+-----------+--------+--------------+
+| 1    | 5  | Alice     | 250    | 250          |
+| 2    | 3  | Alex      | 350    | 600          |
+| 3    | 6  | John Cena | 400    | 1000         | (最后一个上巴士)
+| 4    | 2  | Marie     | 200    | 1200         | (无法上巴士)
+| 5    | 4  | Bob       | 175    | ___          |
+| 6    | 1  | Winston   | 500    | ___          |
++------+----+-----------+--------+--------------+
+```
+
+
+
+使用窗口函数;
+
+```sql
+SELECT person_name
+FROM (
+    SELECT *,
+           SUM(weight) OVER (ORDER BY turn) AS total_weight
+    FROM Queue
+) q
+WHERE q.total_weight <= 1000
+ORDER BY turn DESC
+LIMIT 1;
+
+```
+
+避免使用子查询：
+
+
+
+```sql
+WITH RankedQueue AS (
+    SELECT
+        person_id,
+        person_name,
+        SUM(weight) OVER (ORDER BY turn) AS total_weight,
+        turn,
+        ROW_NUMBER() OVER (ORDER BY turn DESC) AS rnk
+    FROM Queue
+)
+SELECT person_name
+FROM RankedQueue
+WHERE total_weight <= 1000 AND rnk = 1;
+```
+
+
+
+
+
+### [1907. 按分类统计薪水](https://leetcode.cn/problems/count-salary-categories/)
+
+查询每个工资类别的银行账户数量。 工资类别如下：
+
+- `"Low Salary"`：所有工资 **严格低于** `20000` 美元。
+- `"Average Salary"`： **包含** 范围内的所有工资 `[$20000, $50000]` 。
+- `"High Salary"`：所有工资 **严格大于** `50000` 美元。
+
+结果表 **必须** 包含所有三个类别。 如果某个类别中没有帐户，则报告 `0` 。
+
+按 **任意顺序** 返回结果表。
+
+查询结果格式如下示例。
+
+ 
+
+**示例 1：**
+
+```sql
+输入：
+Accounts 表:
++------------+--------+
+| account_id | income |
++------------+--------+
+| 3          | 108939 |
+| 2          | 12747  |
+| 8          | 87709  |
+| 6          | 91796  |
++------------+--------+
+输出：
++----------------+----------------+
+| category       | accounts_count |
++----------------+----------------+
+| Low Salary     | 1              |
+| Average Salary | 0              |
+| High Salary    | 3              |
++----------------+----------------+
+解释：
+低薪: 有一个账户 2.
+中等薪水: 没有.
+高薪: 有三个账户，他们是 3, 6和 8.
+```
+
+难点：
+
+- 建立category column ，原表格中没有这一列
+- 处理0，为0的一组category 不会显示
+- `UNION ALL` 是 SQL 中的一个操作符，用于合并两个或多个查询的结果集，并返回一个包含所有行的结果集。它的主要特点是允许包含重复的行，即使在不同的子查询中有相同的行，也会全部保留。相对应的，`UNION` 操作符则会删除重复的行，只保留一次。
+
+
+
+生成一个包含所有category的表
+
+```sql
+WITH categories AS (
+SELECT "Low Salary" AS category
+UNION ALL  
+    SELECT "Average Salary"
+UNION ALL
+    SELECT "High Salary"
+)
+
+```
+
+对Accounts表的salary进行统计，聚合结果
+
+```sql
+SELECT 
+    CASE 
+      WHEN income<20000 THEN "Low Salary"
+      WHEN income>=20000 AND income<50000 THEN "Average Salary"
+      WHEN income>=50000 THEN "High Salary"
+      END AS category,
+     COUNT(*) AS accounts_count
+FROM Accounts
+GROUP BY category;
+```
+
+LEFT JOIN 连接两个表
+
+```sql
+SELECT c.category ,ifnull(a.accounts_count,0) AS accounts_count
+FROM categories c
+LEFT JOIN (
+    SELECT 
+    CASE 
+      WHEN income<20000 THEN "Low Salary"
+      WHEN income>=20000 AND income<=50000 THEN "Average Salary"
+      WHEN income>50000 THEN "High Salary"
+      END AS category,
+     COUNT(*) AS accounts_count
+FROM Accounts
+GROUP BY category
+) a
+ON c.category=a.category
+;
+```
+
+
+
+#### 方法二：
+
+```sql
+SELECT 
+    'Low Salary' AS category,
+    SUM(CASE WHEN income < 20000 THEN 1 ELSE 0 END) AS accounts_count
+FROM 
+    Accounts
+    
+UNION
+SELECT  
+    'Average Salary' category,
+    SUM(CASE WHEN income >= 20000 AND income <= 50000 THEN 1 ELSE 0 END) 
+    AS accounts_count
+FROM 
+    Accounts
+
+UNION
+SELECT 
+    'High Salary' category,
+    SUM(CASE WHEN income > 50000 THEN 1 ELSE 0 END) AS accounts_count
+FROM 
+    Accounts
 ```
 
