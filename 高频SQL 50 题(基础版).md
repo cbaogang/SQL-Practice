@@ -2203,7 +2203,7 @@ ORDER BY 1;
 
 ## Day 7
 
-#### [1789. 员工的直属部门](https://leetcode.cn/problems/primary-department-for-each-employee/)
+### [1789. 员工的直属部门](https://leetcode.cn/problems/primary-department-for-each-employee/)
 
 一个员工可以属于多个部门。当一个员工加入**超过一个部门**的时候，他需要决定哪个部门是他的直属部门。请注意，当员工只加入一个部门的时候，那这个部门将默认为他的直属部门，虽然表记录的值为`'N'`.
 
@@ -2911,4 +2911,478 @@ SELECT
 FROM 
     Accounts
 ```
+
+
+
+## Day 7
+
+### [1978. 上级经理已离职的公司员工](https://leetcode.cn/problems/employees-whose-manager-left-the-company/)
+
+
+
+查找这些员工的id，他们的薪水严格少于`$30000` 并且他们的上级经理已离职。当一个经理离开公司时，他们的信息需要从员工表中删除掉，但是表中的员工的`manager_id` 这一列还是设置的离职经理的id 。
+
+返回的结果按照`employee_id `从小到大排序。
+
+查询结果如下所示：
+
+ 
+
+**示例：**
+
+```sql
+输入：
+Employees table:
++-------------+-----------+------------+--------+
+| employee_id | name      | manager_id | salary |
++-------------+-----------+------------+--------+
+| 3           | Mila      | 9          | 60301  |
+| 12          | Antonella | null       | 31000  |
+| 13          | Emery     | null       | 67084  |
+| 1           | Kalel     | 11         | 21241  |
+| 9           | Mikaela   | null       | 50937  |
+| 11          | Joziah    | 6          | 28485  |
++-------------+-----------+------------+--------+
+输出：
++-------------+
+| employee_id |
++-------------+
+| 11          |
++-------------+
+
+解释：
+薪水少于 30000 美元的员工有 1 号(Kalel) 和 11号 (Joziah)。
+Kalel 的上级经理是 11 号员工，他还在公司上班(他是 Joziah )。
+Joziah 的上级经理是 6 号员工，他已经离职，因为员工表里面已经没有 6 号员工的信息了，它被删除了。
+```
+
+
+
+考察子查询：
+
+```sql
+SELECT 
+	employee_id 
+FROM 
+	Employees 
+WHERE 
+	salary<30000
+AND 
+	manager_id NOT IN (
+        SELECT employee_id FROM Employees);
+```
+
+
+
+### [626. 换座位](https://leetcode.cn/problems/exchange-seats/)
+
+编写解决方案来交换每两个连续的学生的座位号。如果学生的数量是奇数，则最后一个学生的id不交换。
+
+按 `id` **升序** 返回结果表。
+
+查询结果格式如下所示。
+
+ 
+
+**示例 1:**
+
+```sql
+输入: 
+Seat 表:
++----+---------+
+| id | student |
++----+---------+
+| 1  | Abbot   |
+| 2  | Doris   |
+| 3  | Emerson |
+| 4  | Green   |
+| 5  | Jeames  |
++----+---------+
+输出: 
++----+---------+
+| id | student |
++----+---------+
+| 1  | Doris   |
+| 2  | Abbot   |
+| 3  | Green   |
+| 4  | Emerson |
+| 5  | Jeames  |
++----+---------+
+解释:
+请注意，如果学生人数为奇数，则不需要更换最后一名学生的座位。
+```
+
+
+
+
+
+难点：
+
+- 连续的数字
+- 交换
+- 奇数 
+  - id%2
+
+
+
+#### **算法**
+
+对于所有座位 id 是奇数的学生，修改其 id 为 id+1，如果最后一个座位 id 也是奇数，则最后一个座位 id 不修改。对于所有座位 id 是偶数的学生，修改其 id 为 id-1。
+
+
+
+```sql
+SELECT id, IF(id%2=1,LEAD(student,1,student) OVER (ORDER BY id), LAG(student,1) OVER (ORDER BY id)) student
+FROM Seat;
+
+```
+
+
+
+#### 解法2：
+
+```sql
+select 
+    if(id%2=0,
+        id-1,
+        if(id=(select count(distinct id) from seat),
+            id,
+            id+1)) 
+    as id,student 
+from seat 
+order by id;
+
+```
+
+
+
+### [1341. 电影评分](https://leetcode.cn/problems/movie-rating/)
+
+请你编写一个解决方案：
+
+- 查找评论电影数量最多的用户名。如果出现平局，返回字典序较小的用户名。
+- 查找在 `February 2020` **平均评分最高** 的电影名称。如果出现平局，返回字典序较小的电影名称。
+
+**字典序** ，即按字母在字典中出现顺序对字符串排序，字典序较小则意味着排序靠前。
+
+返回结果格式如下例所示。
+
+ 
+
+**示例 1：**
+
+```sql
+输入：
+Movies 表：
++-------------+--------------+
+| movie_id    |  title       |
++-------------+--------------+
+| 1           | Avengers     |
+| 2           | Frozen 2     |
+| 3           | Joker        |
++-------------+--------------+
+Users 表：
++-------------+--------------+
+| user_id     |  name        |
++-------------+--------------+
+| 1           | Daniel       |
+| 2           | Monica       |
+| 3           | Maria        |
+| 4           | James        |
++-------------+--------------+
+MovieRating 表：
++-------------+--------------+--------------+-------------+
+| movie_id    | user_id      | rating       | created_at  |
++-------------+--------------+--------------+-------------+
+| 1           | 1            | 3            | 2020-01-12  |
+| 1           | 2            | 4            | 2020-02-11  |
+| 1           | 3            | 2            | 2020-02-12  |
+| 1           | 4            | 1            | 2020-01-01  |
+| 2           | 1            | 5            | 2020-02-17  | 
+| 2           | 2            | 2            | 2020-02-01  | 
+| 2           | 3            | 2            | 2020-03-01  |
+| 3           | 1            | 3            | 2020-02-22  | 
+| 3           | 2            | 4            | 2020-02-25  | 
++-------------+--------------+--------------+-------------+
+输出：
+Result 表：
++--------------+
+| results      |
++--------------+
+| Daniel       |
+| Frozen 2     |
++--------------+
+解释：
+Daniel 和 Monica 都点评了 3 部电影（"Avengers", "Frozen 2" 和 "Joker"） 但是 Daniel 字典序比较小。
+Frozen 2 和 Joker 在 2 月的评分都是 3.5，但是 Frozen 2 的字典序比较小。
+```
+
+
+
+
+
+#### 知识点：
+
+- 两个查询结果：UNION ALL
+
+- COUNT(*) 和AVG(rating) 的结果直接放在ORDER  BY 后面，而不是select
+
+- ```sql
+  created_at LIKE '2020-02%'
+  ```
+
+
+
+```sql
+-- First case: Movie ratings and user information
+(SELECT b.name AS results
+ FROM MovieRating a
+ JOIN Users b ON a.user_id = b.user_id
+ GROUP BY a.user_id
+ ORDER BY COUNT(a.user_id) DESC, b.name ASC
+ LIMIT 1)
+UNION ALL
+
+-- Second case: Movie information for a specific month and average rating
+(SELECT b.title AS results
+ FROM MovieRating a
+ JOIN Movies b ON a.movie_id = b.movie_id
+ WHERE date_format(a.created_at,"%Y-%m")="2020-02"
+ GROUP BY a.movie_id
+ ORDER BY AVG(a.rating) DESC, b.title ASC
+ LIMIT 1);
+
+```
+
+窗口函数：RANK ()
+
+- `RANK()` 函数是 SQL 中的一种窗口函数，用于为结果集中的每个唯一行分配一个唯一的排名。它通常用于根据指定的顺序对行进行排名。其一般语法如下：
+
+  ```sql
+  sqlCopy code
+  RANK() OVER (PARTITION BY partition_expression ORDER BY sort_expression [ASC | DESC], ...)
+  ```
+
+  - `PARTITION BY`：将结果集分为窗口，`RANK()` 函数将应用于这些窗口。如果省略 `PARTITION BY` 子句，该函数将整个结果集视为一个窗口。
+  - `ORDER BY`：指定行在每个窗口内的排名顺序。可以在 `ORDER BY` 子句中有多个列，以定义排序标准。可选的 `ASC`（升序）或 `DESC`（降序）关键字确定排序顺序
+
+  
+
+```sql
+SELECT results
+FROM (
+  SELECT name AS results, RANK() OVER(ORDER BY COUNT(*) DESC, name) AS RANKING
+  FROM Users
+  INNER JOIN MovieRating USING(user_id)
+  GROUP BY user_id
+  UNION ALL
+  SELECT title AS results, RANK() OVER(ORDER BY AVG(rating) DESC, title) AS RANKING
+  FROM MovieRating
+  INNER JOIN Movies USING(movie_id)
+  WHERE DATE_FORMAT(created_at, '%Y-%m') = '2020-02'
+  GROUP BY movie_id
+) T
+WHERE T.RANKING = 1
+```
+
+
+
+
+
+### [1321. 餐馆营业额变化增长](https://leetcode.cn/problems/restaurant-growth/)
+
+你是餐馆的老板，现在你想分析一下可能的营业额变化增长（每天至少有一位顾客）。
+
+计算以 7 天（某日期 + 该日期前的 6 天）为一个时间段的顾客消费平均值。`average_amount` 要 **保留两位小数。**
+
+结果按 `visited_on` **升序排序**。
+
+返回结果格式的例子如下。
+
+ 
+
+**示例 1:**
+
+```sql
+输入：
+Customer 表:
++-------------+--------------+--------------+-------------+
+| customer_id | name         | visited_on   | amount      |
++-------------+--------------+--------------+-------------+
+| 1           | Jhon         | 2019-01-01   | 100         |
+| 2           | Daniel       | 2019-01-02   | 110         |
+| 3           | Jade         | 2019-01-03   | 120         |
+| 4           | Khaled       | 2019-01-04   | 130         |
+| 5           | Winston      | 2019-01-05   | 110         | 
+| 6           | Elvis        | 2019-01-06   | 140         | 
+| 7           | Anna         | 2019-01-07   | 150         |
+| 8           | Maria        | 2019-01-08   | 80          |
+| 9           | Jaze         | 2019-01-09   | 110         | 
+| 1           | Jhon         | 2019-01-10   | 130         | 
+| 3           | Jade         | 2019-01-10   | 150         | 
++-------------+--------------+--------------+-------------+
+输出：
++--------------+--------------+----------------+
+| visited_on   | amount       | average_amount |
++--------------+--------------+----------------+
+| 2019-01-07   | 860          | 122.86         |
+| 2019-01-08   | 840          | 120            |
+| 2019-01-09   | 840          | 120            |
+| 2019-01-10   | 1000         | 142.86         |
++--------------+--------------+----------------+
+解释：
+第一个七天消费平均值从 2019-01-01 到 2019-01-07 是restaurant-growth/restaurant-growth/ (100 + 110 + 120 + 130 + 110 + 140 + 150)/7 = 122.86
+第二个七天消费平均值从 2019-01-02 到 2019-01-08 是 (110 + 120 + 130 + 110 + 140 + 150 + 80)/7 = 120
+第三个七天消费平均值从 2019-01-03 到 2019-01-09 是 (120 + 130 + 110 + 140 + 150 + 80 + 110)/7 = 120
+第四个七天消费平均值从 2019-01-04 到 2019-01-10 是 (130 + 110 + 140 + 150 + 80 + 110 + 130 + 150)/7 = 142.86
+```
+
+
+
+#### 知识点：
+
+
+
+在 SQL 窗口函数中，`ROWS BETWEEN` 子句用于定义窗口框架
+
+1. **PRECEDING 和 FOLLOWING：** PRECEDING` 表示之前的行数，FOLLOWING` 表示之后的行数。例如，`ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING` 表示在当前行之前和之后各包含一行。
+
+2. **UNBOUNDED：** 你可以使用 `UNBOUNDED` 表示没有限制。例如，`ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW` 表示从结果集的开头到当前行。
+
+3. **CURRENT ROW：** 这表示只包括当前行。
+
+   
+
+
+
+在 SQL 窗口函数中，`RANGE BETWEEN INTERVAL` 的用法用于指定窗口框架，表示在时间上的范围
+
+- `RANGE`: 这表示你正在定义一个范围作为窗口框架，而不是特定的行数。
+- `BETWEEN`: 这是一个用于指定范围边界的关键字。
+- `INTERVAL 6 DAY PRECEDING`: 这表示在当前行之前的 6 天。这部分定义了窗口的起始位置。
+- `AND CURRENT ROW`: 这表示窗口的结束位置是当前行。这部分定义了窗口的结束位置。
+
+
+
+具体有如下这些：
+
+当前行 - current row
+之前的行 - preceding
+之后的行 - following
+无界限 - unbounded
+表示从前面的起点 - unbounded preceding
+表示到后面的终点 - unbounded following
+举例理解一下：
+
+取当前行和前五行：ROWS between 5 preceding and current row --共6行
+取当前行和后五行：ROWS between current row and 5 following --共6行
+取前五行和后五行：ROWS between 5 preceding and 5 folowing --共11行
+
+
+
+陷阱：
+
+- 不要使用AVG，如果只有5条数据，那么窗口函数会/5，不管那天有没有记录，求平均的时候都要算上，而不是只算有记录的7天
+- 存在着同一用户在某日多次消费的情况，窗口照旧向前取6天就无法覆盖被挤出去的数据了
+
+
+
+陷阱2：
+
+```sql
+SELECT a.visited_on,
+
+  SUM(amount) OVER (ORDER BY visited_on ASC RANGE INTERVAL 6 DAY PRECEDING) AS total_amount
+  
+FROM
+ (select visited_on,sum(amount) as amount from Customer GROUP BY visited_on) a
+```
+
+
+
+陷阱1：
+
+```sql
+SELECT visited_on, total_amount as amount, ROUND(total_amount/7,2) AS average_amount
+
+FROM (
+
+SELECT a.visited_on,
+
+  SUM(amount) OVER (ORDER BY visited_on ASC RANGE INTERVAL 6 DAY PRECEDING) AS total_amount
+  
+FROM
+ (select visited_on,sum(amount) as amount from Customer GROUP BY visited_on) a) b 
+
+
+WHERE DATEDIFF(visited_on, (SELECT MIN(visited_on) FROM Customer)) >= 6;
+```
+
+
+
+
+
+### [602. 好友申请 II ：谁有最多的好友](https://leetcode.cn/problems/friend-requests-ii-who-has-the-most-friends/)
+
+编写解决方案，找出拥有最多的好友的人和他拥有的好友数目。
+
+生成的测试用例保证拥有最多好友数目的只有 1 个人。
+
+查询结果格式如下例所示。
+
+ 
+
+**示例 1：**
+
+```
+输入：
+RequestAccepted 表：
++--------------+-------------+-------------+
+| requester_id | accepter_id | accept_date |
++--------------+-------------+-------------+
+| 1            | 2           | 2016/06/03  |
+| 1            | 3           | 2016/06/08  |
+| 2            | 3           | 2016/06/08  |
+| 3            | 4           | 2016/06/09  |
++--------------+-------------+-------------+
+输出：
++----+-----+
+| id | num |
++----+-----+
+| 3  | 3   |
++----+-----+
+解释：
+编号为 3 的人是编号为 1 ，2 和 4 的人的好友，所以他总共有 3 个好友，比其他人都多。
+```
+
+ 
+
+**进阶：**在真实世界里，可能会有多个人拥有好友数相同且最多，你能找到所有这些人吗？
+
+
+
+#### 算法
+
+成为朋友是一个双向的过程，所以如果一个人接受了另一个人的请求，他们两个都会多拥有一个朋友。
+
+所以我们可以将 requester_id 和 accepter_id 联合起来，然后统计每个人出现的次数。
+
+
+
+```sql
+SELECT a.ids as id, count(*) as num FROM
+
+( select requester_id as ids from RequestAccepted 
+        union all
+  select accepter_id as ids from RequestAccepted) a 
+  GROUP BY id order by num desc limit 1;
+```
+
+
+
+
+
+
+
+
 
