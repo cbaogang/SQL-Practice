@@ -3380,9 +3380,261 @@ SELECT a.ids as id, count(*) as num FROM
 
 
 
+## Day 8
 
 
 
+### [585. 2016年的投资](https://leetcode.cn/problems/investments-in-2016/)
+
+
+
+编写解决方案报告 2016 年 (`tiv_2016`) 所有满足下述条件的投保人的投保金额之和：
+
+- 他在 2015 年的投保额 (`tiv_2015`) 至少跟一个其他投保人在 2015 年的投保额相同。
+- 他所在的城市必须与其他投保人都不同（也就是说 (`lat, lon`) 不能跟其他任何一个投保人完全相同）。
+
+`tiv_2016` 四舍五入的 **两位小数** 。
+
+查询结果格式如下例所示。
+
+ 
+
+**示例 1：**
+
+```sql
+输入：
+Insurance 表：
++-----+----------+----------+-----+-----+
+| pid | tiv_2015 | tiv_2016 | lat | lon |
++-----+----------+----------+-----+-----+
+| 1   | 10       | 5        | 10  | 10  |
+| 2   | 20       | 20       | 20  | 20  |
+| 3   | 10       | 30       | 20  | 20  |
+| 4   | 10       | 40       | 40  | 40  |
++-----+----------+----------+-----+-----+
+输出：
++----------+
+| tiv_2016 |
++----------+
+| 45.00    |
++----------+
+解释：
+表中的第一条记录和最后一条记录都满足两个条件。
+tiv_2015 值为 10 与第三条和第四条记录相同，且其位置是唯一的。
+
+第二条记录不符合任何一个条件。其 tiv_2015 与其他投保人不同，并且位置与第三条记录相同，这也导致了第三条记录不符合题目要求。
+因此，结果是第一条记录和最后一条记录的 tiv_2016 之和，即 45 。
+```
+
+
+
+#### 窗口函数解法：                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
+
+
+
+```sql
+SELECT ROUND(SUM(tiv_2016),2) AS tiv_2016 
+FROM ( 
+    SELECT 
+    tiv_2016,
+    COUNT(*) OVER (PARTITION BY lat,lon ) AS count_lat_lon,
+    COUNT(*) OVER (PARTITION BY tiv_2015) AS count_tiv_2015
+    FROM Insurance 
+	) a 
+where a.count_lat_lon=1 AND a.count_tiv_2015>1;
+```
+
+
+
+```sql
+SELECT ROUND(SUM(a.tiv_2016), 2) AS tiv_2016
+FROM Insurance a
+WHERE 
+    (a.lat, a.lon) NOT IN (
+        SELECT b.lat, b.lon
+        FROM Insurance b
+        WHERE a.pid <> b.pid
+    )
+    AND a.tiv_2015 IN (
+        SELECT c.tiv_2015
+        FROM Insurance c
+        WHERE a.pid <> c.pid
+    );
+
+```
+
+
+
+
+
+### [185. 部门工资前三高的所有员工](https://leetcode.cn/problems/department-top-three-salaries/)
+
+
+
+公司的主管们感兴趣的是公司每个部门中谁赚的钱最多。一个部门的 **高收入者** 是指一个员工的工资在该部门的 **不同** 工资中 **排名前三** 。
+
+编写解决方案，找出每个部门中 **收入高的员工** 。
+
+以 **任意顺序** 返回结果表。
+
+返回结果格式如下所示。
+
+ 
+
+**示例 1:**
+
+```sql
+输入: 
+Employee 表:
++----+-------+--------+--------------+
+| id | name  | salary | departmentId |
++----+-------+--------+--------------+
+| 1  | Joe   | 85000  | 1            |
+| 2  | Henry | 80000  | 2            |
+| 3  | Sam   | 60000  | 2            |
+| 4  | Max   | 90000  | 1            |
+| 5  | Janet | 69000  | 1            |
+| 6  | Randy | 85000  | 1            |
+| 7  | Will  | 70000  | 1            |
++----+-------+--------+--------------+
+Department  表:
++----+-------+
+| id | name  |
++----+-------+
+| 1  | IT    |
+| 2  | Sales |
++----+-------+
+输出: 
++------------+----------+--------+
+| Department | Employee | Salary |
++------------+----------+--------+
+| IT         | Max      | 90000  |
+| IT         | Joe      | 85000  |
+| IT         | Randy    | 85000  |
+| IT         | Will     | 70000  |
+| Sales      | Henry    | 80000  |
+| Sales      | Sam      | 60000  |
++------------+----------+--------+
+解释:
+在IT部门:
+- Max的工资最高
+- 兰迪和乔都赚取第二高的独特的薪水
+- 威尔的薪水是第三高的
+
+在销售部:
+- 亨利的工资最高
+- 山姆的薪水第二高
+- 没有第三高的工资，因为只有两名员工
+```
+
+
+
+#### 使用窗口函数：dense_rank()
+
+`
+
+**`RANK()` 函数：**
+
+- `RANK()` 函数分配排名，并在出现相同数值时跳过排名。如果有两行具有相同的值，它们将被分配相同的排名，并且下一行将跳过相应数量的排名。
+- 例如，如果两行具有相同的值并且都排在第一位，则下一行将被分配排名为第三位。
+
+**`DENSE_RANK()` 函数：**
+
+- `DENSE_RANK()` 函数也分配排名，但在出现相同数值时不跳过排名。即使有两行具有相同的值，它们也将被分配相同的排名，而下一行将继续顺序分配排名。
+- 例如，如果两行具有相同的值并且都排在第一位，则下一行将被分配排名为第二位。
+
+
+
+```sql
+SELECT a.name AS Department, b.name AS Employee, b.salary FROM Department a 
+join (
+
+SELECT *, DENSE_RANK() OVER (partition by departmentId ORDER BY salary DESC) as salary_rank
+FROM Employee ) b on a.id=b.departmentId WHERE salary_rank<=3 ;
+```
+
+
+
+### [1667. 修复表中的名字](https://leetcode.cn/problems/fix-names-in-a-table/)
+
+
+
+编写解决方案，修复名字，使得只有第一个字符是大写的，其余都是小写的。
+
+返回按 `user_id` 排序的结果表。
+
+返回结果格式示例如下。
+
+ 
+
+**示例 1：**
+
+```sql
+输入：
+Users table:
++---------+-------+
+| user_id | name  |
++---------+-------+
+| 1       | aLice |
+| 2       | bOB   |
++---------+-------+
+输出：
++---------+-------+
+| user_id | name  |
++---------+-------+
+| 1       | Alice |
+| 2       | Bob   |
++---------+-------+
+```
+
+
+
+#### 考察字符串函数的用法：
+
+- `CONCAT(str1, str2) :` 拼接字符串
+- `UPPER(str) :` 字符串变成大写
+- `LOWER(str) :` 字符串变成小写
+- `LENGTH(str) :` 获取字符串的长度
+- `LEFT(str,len) :` 获取字符串左边 len 个字符
+- `RIGHT(str,len) :` 获取字符串右边 len 个字符
+- `SUBSTR(str,start,len) :` 获取 str 中从 start 开始的 len 个字符
+
+
+
+```sql
+SELECT user_id, CONCAT(UPPER(LEFT(name,1)),LOWER(RIGHT(name,LENGTH(name)-1))) AS name
+FROM Users
+ORDER BY user_id;
+```
+
+
+
+```sql
+select user_id,
+CONCAT(Upper(left(name,1)),Lower(substring(name,2))) name 
+from users 
+order by user_id
+```
+
+
+
+#### 正则表达：
+
+```sql
+SELECT * FROM PATIENTS
+WHERE CONDITIONS REGEXP '^DIAB1|\\sDIAB1'
+```
+
+
+
+```sql
+SELECT * FROM 
+patients WHERE conditions like "DIAB1%" or conditions LIKE "% DIAB1%";
+```
+
+
+
+- 这里使用了双反斜杠 `\\` 是因为在 SQL 字符串中需要转义反斜杠
 
 
 
