@@ -3638,3 +3638,304 @@ patients WHERE conditions like "DIAB1%" or conditions LIKE "% DIAB1%";
 
 
 
+
+
+## Day 9
+
+####  知识点：Rank()和ROW_NUMBER()区别
+
+`ROW_NUMBER()` 和 `RANK()` 都是窗口函数，用于在查询的结果集中为行分配排名。然而，它们之间存在一些重要的区别：
+
+1. **排名规则：**
+   - `ROW_NUMBER()` 为每一行分配一个唯一的整数值，不考虑相同值的情况。因此，如果有相同的值，它们会被分配不同的行号。
+   - `RANK()` 也为每一行分配一个唯一的整数值，但对于相同的值，它们会被分配相同的排名，且下一个行的排名将被跳过。
+2. **相同排名处理：**
+   - `ROW_NUMBER()` 在遇到相同的值时，每一行都会被分配一个唯一的行号，不会跳过。
+   - `RANK()` 在遇到相同的值时，会为所有相同值的行分配相同的排名，并跳过下一个排名
+
+
+
+
+
+### [176. 第二高的薪水](https://leetcode.cn/problems/second-highest-salary/)
+
+查询并返回 `Employee` 表中第二高的薪水 。如果不存在第二高的薪水，查询应该返回 `null(Pandas 则返回 None)` 。
+
+查询结果如下例所示。
+
+ 
+
+**示例 1：**
+
+```
+输入：
+Employee 表：
++----+--------+
+| id | salary |
++----+--------+
+| 1  | 100    |
+| 2  | 200    |
+| 3  | 300    |
++----+--------+
+输出：
++---------------------+
+| SecondHighestSalary |
++---------------------+
+| 200                 |
++---------------------+
+```
+
+**示例 2：**
+
+```
+输入：
+Employee 表：
++----+--------+
+| id | salary |
++----+--------+
+| 1  | 100    |
++----+--------+
+输出：
++---------------------+
+| SecondHighestSalary |
++---------------------+
+| null                |
++---------------------+
+```
+
+
+
+
+
+```sql
+SELECT IFNULL(
+    (SELECT distinct salary FROM Employee ORDER BY salary DESC LIMIT 1 OFFSET 1),
+    NULL
+) AS SecondHighestSalary;
+```
+
+
+
+
+
+#### 知识点：LIMIT和offset区别
+SQL查询语句中的 limit 与 offset 的区别：
+limit y 分句表示: 读取 y 条数据
+limit x, y 分句表示: 跳过 x 条数据，读取 y 条数据
+limit y offset x 分句表示: 跳过 x 条数据，读取 y 条数据
+
+
+
+### [1484. 按日期分组销售产品](https://leetcode.cn/problems/group-sold-products-by-the-date/)
+
+编写解决方案找出每个日期、销售的不同产品的数量及其名称。
+每个日期的销售产品名称应按词典序排列。
+返回按 `sell_date` 排序的结果表。
+结果表结果格式如下例所示。
+
+ 
+
+**示例 1:**
+
+```sql
+输入：
+Activities 表：
++------------+-------------+
+| sell_date  | product     |
++------------+-------------+
+| 2020-05-30 | Headphone   |
+| 2020-06-01 | Pencil      |
+| 2020-06-02 | Mask        |
+| 2020-05-30 | Basketball  |
+| 2020-06-01 | Bible       |
+| 2020-06-02 | Mask        |
+| 2020-05-30 | T-Shirt     |
++------------+-------------+
+输出：
++------------+----------+------------------------------+
+| sell_date  | num_sold | products                     |
++------------+----------+------------------------------+
+| 2020-05-30 | 3        | Basketball,Headphone,T-shirt |
+| 2020-06-01 | 2        | Bible,Pencil                 |
+| 2020-06-02 | 1        | Mask                         |
++------------+----------+------------------------------+
+解释：
+对于2020-05-30，出售的物品是 (Headphone, Basketball, T-shirt)，按词典序排列，并用逗号 ',' 分隔。
+对于2020-06-01，出售的物品是 (Pencil, Bible)，按词典序排列，并用逗号分隔。
+对于2020-06-02，出售的物品是 (Mask)，只需返回该物品名。
+```
+
+
+
+#### 知识点：group_concat
+
+`GROUP_CONCAT` 是一种在 SQL 中用于将组内的多个值连接成一个字符串的聚合函数。主要用于将分组内的多个行的某个列的值连接成一个逗号分隔的字符串。
+
+以下是 `GROUP_CONCAT` 的基本用法：
+
+```sql
+sqlCopy codeSELECT
+    column1,
+    GROUP_CONCAT(column2 ORDER BY column3 SEPARATOR ', ') AS concatenated_values
+FROM
+    your_table
+GROUP BY
+    column1;
+```
+
+其中：
+
+- `column1` 是你想要分组的列。
+- `column2` 是你想要连接的列。
+- `ORDER BY column3` 是可选的，用于指定连接的顺序。
+- `SEPARATOR ', '` 是可选的，用于指定连接后的分隔符，默认是逗号。
+
+
+
+```sql
+SELECT 
+	sell_date, COUNT(DISTINCT product) num_sold, 
+	GROUP_CONCAT(DISTINCT product ORDER BY product ASC SEPARATOR ',') products
+FROM Activities
+GROUP BY sell_date;
+```
+
+
+
+
+
+### [1327. 列出指定时间段内所有的下单产品](https://leetcode.cn/problems/list-the-products-ordered-in-a-period/)
+
+**示例 1:**
+
+```sql
+输入：
+Products 表:
++-------------+-----------------------+------------------+
+| product_id  | product_name          | product_category |
++-------------+-----------------------+------------------+
+| 1           | Leetcode Solutions    | Book             |
+| 2           | Jewels of Stringology | Book             |
+| 3           | HP                    | Laptop           |
+| 4           | Lenovo                | Laptop           |
+| 5           | Leetcode Kit          | T-shirt          |
++-------------+-----------------------+------------------+
+Orders 表:
++--------------+--------------+----------+
+| product_id   | order_date   | unit     |
++--------------+--------------+----------+
+| 1            | 2020-02-05   | 60       |
+| 1            | 2020-02-10   | 70       |
+| 2            | 2020-01-18   | 30       |
+| 2            | 2020-02-11   | 80       |
+| 3            | 2020-02-17   | 2        |
+| 3            | 2020-02-24   | 3        |
+| 4            | 2020-03-01   | 20       |
+| 4            | 2020-03-04   | 30       |
+| 4            | 2020-03-04   | 60       |
+| 5            | 2020-02-25   | 50       |
+| 5            | 2020-02-27   | 50       |
+| 5            | 2020-03-01   | 50       |
++--------------+--------------+----------+
+输出：
++--------------------+---------+
+| product_name       | unit    |
++--------------------+---------+
+| Leetcode Solutions | 130     |
+| Leetcode Kit       | 100     |
++--------------------+---------+
+解释：
+2020 年 2 月份下单 product_id = 1 的产品的数目总和为 (60 + 70) = 130 。
+2020 年 2 月份下单 product_id = 2 的产品的数目总和为 80 。
+2020 年 2 月份下单 product_id = 3 的产品的数目总和为 (2 + 3) = 5 。
+2020 年 2 月份 product_id = 4 的产品并没有下单。
+2020 年 2 月份下单 product_id = 5 的产品的数目总和为 (50 + 50) = 100 。
+```
+
+
+
+#### 思路：join + groupby + having 进行处理
+
+
+
+```sql
+SELECT product_name,SUM(unit) as unit
+FROM Orders 
+JOIN Products 
+USING (product_id)
+WHERE  order_date LIKE "2020-02%" 
+GROUP BY product_id HAVING  unit>=100;
+```
+
+
+
+### [1517. 查找拥有有效邮箱的用户](https://leetcode.cn/problems/find-users-with-valid-e-mails/)
+
+编写一个解决方案，以查找具有有效电子邮件的用户。
+
+一个有效的电子邮件具有前缀名称和域，其中：
+
+1.  **前缀** 名称是一个字符串，可以包含字母（大写或小写），数字，下划线 `'_'` ，点 `'.'` 和/或破折号 `'-'` 。前缀名称 **必须** 以字母开头。
+2. **域** 为 `'@leetcode.com'` 。
+
+以任何顺序返回结果表。
+
+结果的格式如以下示例所示：
+
+ 
+
+**示例 1：**
+
+```
+输入：
+Users 表:
++---------+-----------+-------------------------+
+| user_id | name      | mail                    |
++---------+-----------+-------------------------+
+| 1       | Winston   | winston@leetcode.com    |
+| 2       | Jonathan  | jonathanisgreat         |
+| 3       | Annabelle | bella-@leetcode.com     |
+| 4       | Sally     | sally.come@leetcode.com |
+| 5       | Marwan    | quarz#2020@leetcode.com |
+| 6       | David     | david69@gmail.com       |
+| 7       | Shapiro   | .shapo@leetcode.com     |
++---------+-----------+-------------------------+
+输出：
++---------+-----------+-------------------------+
+| user_id | name      | mail                    |
++---------+-----------+-------------------------+
+| 1       | Winston   | winston@leetcode.com    |
+| 3       | Annabelle | bella-@leetcode.com     |
+| 4       | Sally     | sally.come@leetcode.com |
++---------+-----------+-------------------------+
+解释：
+用户 2 的电子邮件没有域。 
+用户 5 的电子邮件带有不允许的 '#' 符号。
+用户 6 的电子邮件没有 leetcode 域。 
+用户 7 的电子邮件以点开头。
+```
+
+
+
+#### 知识点：字符串匹配，正则表达
+
+| $     | 匹配输入字符串的结束位置。                                   |
+| ----- | ------------------------------------------------------------ |
+| ^     | 匹配输入字符串的开始位置。                                   |
+| [a-z] | 字符范围。匹配指定范围内的任意字符。例如，'[a-z]' 可以匹配 'a' 到 'z' 范围内的任意小写字母字符。 |
+| *     | 匹配前面的子表达式零次或多次。例如，zo* 能匹配 "z" 以及 "zoo"。* 等价于{0,}。 |
+| +     | 匹配前面的子表达式一次或多次。例如，'zo+' 能匹配 "zo" 以及 "zoo"，但不能匹配 "z"。+ 等价于 {1,}。 |
+| \     | 将下一个字符标记为一个特殊字符、或一个原义字符、或一个 向后引用、或一个八进制转义符。例如，'n' 匹配字符 "n"。'\n' 匹配一个换行符。序列 '\\' 匹配 "\" 而 "\(" 则匹配 "("。 |
+| \w    | 匹配字母、数字、下划线。等价于'[A-Za-z0-9_]'。               |
+| \W    | 匹配非字母、数字、下划线。等价于 '[^A-Za-z0-9_]'。           |
+
+
+
+`.` 在正则表达式中是一个特殊字符，需要用 `\\.` 来表示实际的点。
+
+```sql
+SELECT *
+FROM Users WHERE
+mail REGEXP '^[a-zA-Z][\\w\\.\-]*@leetcode\\.com$';
+```
+
